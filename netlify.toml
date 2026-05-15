@@ -4,7 +4,7 @@
   publish = ".next"
 
 [build.environment]
-  NEXT_PUBLIC_API_URL = "https://ready-yaks-act.loca.lt"
+  NEXT_PUBLIC_API_URL = "https://large-rockets-end.loca.lt"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
