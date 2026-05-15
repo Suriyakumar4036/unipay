@@ -43,13 +43,13 @@ export default function Login() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-6 bg-black relative overflow-hidden">
+    <main className="min-h-screen flex items-center justify-center p-4 md:p-6 bg-black relative overflow-hidden">
       <div className="mesh-bg absolute inset-0 z-0" />
       
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass p-12 rounded-[3rem] w-full max-w-md relative z-10"
+        className="glass p-8 md:p-12 rounded-[2.5rem] md:rounded-[3rem] w-full max-w-md relative z-10"
       >
         <h2 className="text-3xl font-black text-white mb-2 font-outfit text-center">
           {isLogin ? "Welcome Back" : "Join the Elite"}

@@ -33,25 +33,25 @@ export default function Dashboard() {
   }, [router]);
 
   return (
-    <main className="min-h-screen p-8 bg-black">
+    <main className="min-h-screen p-4 md:p-8 bg-black">
       <div className="max-w-6xl mx-auto">
-        <header className="flex justify-between items-center mb-12 border-b border-white/10 pb-8">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 md:mb-12 border-b border-white/10 pb-6 md:pb-8">
           <div>
-            <h1 className="text-3xl font-black text-white font-outfit mb-2">Neural Portfolio</h1>
-            <p className="text-zinc-500 font-bold tracking-widest uppercase text-xs">ID: <span className="text-indigo-400">{globalId}</span></p>
+            <h1 className="text-2xl md:text-3xl font-black text-white font-outfit mb-2">Neural Portfolio</h1>
+            <p className="text-zinc-500 font-bold tracking-widest uppercase text-[10px] md:text-xs">ID: <span className="text-indigo-400">{globalId}</span></p>
           </div>
-          <div className="flex gap-4">
-            <Link href="/send">
-              <button className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold transition-colors">
+          <div className="flex flex-wrap gap-3 w-full md:w-auto">
+            <Link href="/send" className="flex-1 md:flex-none">
+              <button className="w-full bg-indigo-500 hover:bg-indigo-600 text-white px-4 md:px-6 py-2 rounded-xl font-bold transition-colors text-sm md:text-base">
                 Send Money
               </button>
             </Link>
-            <Link href="/ai-chat">
-              <button className="glass hover:bg-white/10 text-white px-6 py-2 rounded-xl font-bold transition-colors">
+            <Link href="/ai-chat" className="flex-1 md:flex-none">
+              <button className="w-full glass hover:bg-white/10 text-white px-4 md:px-6 py-2 rounded-xl font-bold transition-colors text-sm md:text-base">
                 AI Insights
               </button>
             </Link>
-            <button onClick={() => { localStorage.clear(); sessionStorage.clear(); router.push("/login"); }} className="text-zinc-500 hover:text-white px-4">
+            <button onClick={() => { localStorage.clear(); sessionStorage.clear(); router.push("/login"); }} className="text-zinc-500 hover:text-white px-2 md:px-4 text-xs md:text-sm">
               Logout
             </button>
           </div>

@@ -37,13 +37,13 @@ export default function AiChat() {
   };
 
   return (
-    <main className="min-h-screen p-8 bg-black">
-      <div className="max-w-3xl mx-auto h-[90vh] flex flex-col">
-        <Link href="/dashboard" className="flex items-center gap-2 text-zinc-500 hover:text-white mb-6 transition-colors">
+    <main className="min-h-screen p-4 md:p-8 bg-black">
+      <div className="max-w-3xl mx-auto h-[92vh] flex flex-col">
+        <Link href="/dashboard" className="flex items-center gap-2 text-zinc-500 hover:text-white mb-4 md:mb-6 transition-colors text-sm">
           <ArrowLeft className="w-4 h-4" /> Back to Neural Portfolio
         </Link>
 
-        <div className="glass flex-1 rounded-[3rem] p-6 md:p-10 flex flex-col relative overflow-hidden">
+        <div className="glass flex-1 rounded-[2rem] md:rounded-[3rem] p-4 md:p-10 flex flex-col relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-cyan-500" />
           
             <div className="flex items-center justify-between mb-8 pb-6 border-b border-white/5">

@@ -87,3 +87,29 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
+
+/* Mobile-First Enhancements */
+@media (max-width: 640px) {
+  .glass {
+    border-radius: 2rem !important;
+    padding: 1.5rem !important;
+  }
+  
+  h1 { font-size: 1.75rem !important; }
+  h2 { font-size: 1.5rem !important; }
+  h3 { font-size: 2rem !important; }
+  
+  .p-8 { padding: 1.5rem !important; }
+  .p-12 { padding: 2rem !important; }
+  .mb-12 { margin-bottom: 2rem !important; }
+  .mb-16 { margin-bottom: 3rem !important; }
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
