@@ -1,0 +1,54 @@
+.DS_Store
+
+# OS files
+*.DS_Store
+
+# Python virtualenv
+.venv/
+dashboard/.venv/
+
+# Node.js
+node_modules/
+*.log
+*.tgz
+# v7.5.10: package-lock.json is now committed (was gitignored prior).
+# Required for `npm audit` to scan production deps; also gives
+# reproducible installs for users who consume `npm install -g loki-mode`.
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Build outputs
+dist/
+!web-app/dist/
+*.vsix
+
+# Local development (not tracked)
+the_app/
+wiki-repo/
+
+# Runtime state (regenerated each session)
+# Source hooks live in autonomy/hooks/ (tracked)
+.loki/
+
+# Runtime state in subdirectories
+dashboard-ui/.loki/
+vscode-extension/.loki/
+
+# Hermetic test fixtures under loki-ts/ are intentionally tracked
+!loki-ts/tests/fixtures/**/.loki/
+!loki-ts/tests/fixtures/**/.loki/**
+
+# Release tracking artifacts (per-release audit records, intentionally tracked)
+!.loki/tracking/
+!.loki/tracking/**
+
+# Claude Code harness scheduled-tasks lock (transient, per-session)
+.claude/scheduled_tasks.lock
+
+# Test artifacts
+**/test-results/
+.aider*

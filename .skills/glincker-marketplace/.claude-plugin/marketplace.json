@@ -1,0 +1,175 @@
+{
+  "name": "glincker-marketplace",
+  "owner": {
+    "name": "GLINCKER",
+    "email": "marketplace@glincker.com"
+  },
+  "metadata": {
+    "description": "Community-driven Claude Code marketplace featuring curated skills, tools, and extensions",
+    "version": "1.0.0",
+    "pluginRoot": "."
+  },
+  "plugins": [
+    {
+      "name": "pr-reviewer",
+      "source": "./skills/devops/pr-reviewer",
+      "description": "Autonomous AI-powered pull request reviewer with multi-agent analysis",
+      "version": "1.0.0",
+      "keywords": ["devops", "pr-review", "code-review", "multi-agent"]
+    },
+    {
+      "name": "workflow-composer",
+      "source": "./skills/automation/workflow-composer",
+      "description": "Chain multiple skills together into automated workflows with conditional logic",
+      "version": "1.0.0",
+      "keywords": ["automation", "workflow", "orchestration", "skill-chaining"]
+    },
+    {
+      "name": "database-query",
+      "source": "./skills/integrations/database-query",
+      "description": "Natural language database queries with multi-database support and optimization",
+      "version": "1.0.0",
+      "keywords": ["database", "sql", "query", "natural-language"]
+    },
+    {
+      "name": "code-migrator",
+      "source": "./skills/development/code-migrator",
+      "description": "Migrate legacy code to modern frameworks with automated refactoring",
+      "version": "1.0.0",
+      "keywords": ["migration", "modernization", "refactoring", "legacy-code"]
+    },
+    {
+      "name": "api-connector",
+      "source": "./skills/integrations/api-connector",
+      "description": "Connect to 100+ popular APIs using natural language",
+      "version": "1.0.0",
+      "keywords": ["api", "integration", "rest", "oauth"]
+    },
+    {
+      "name": "readme-generator",
+      "source": "./skills/documentation/readme-generator",
+      "description": "Generate comprehensive README files by analyzing project structure",
+      "version": "1.0.0",
+      "keywords": ["documentation", "readme", "markdown"]
+    },
+    {
+      "name": "unit-test-generator",
+      "source": "./skills/testing/unit-test-generator",
+      "description": "Generate comprehensive unit tests for multiple languages",
+      "version": "1.0.0",
+      "keywords": ["testing", "unit-tests", "tdd"]
+    },
+    {
+      "name": "hello-world",
+      "source": "./examples/hello-world",
+      "description": "Simple example skill demonstrating basic skill structure",
+      "version": "1.0.0",
+      "keywords": ["example", "tutorial", "beginner"]
+    },
+    {
+      "name": "docker-wizard",
+      "source": "./skills/devops/docker-wizard",
+      "description": "Generate optimized Dockerfiles and docker-compose.yml with best practices",
+      "version": "1.0.0",
+      "keywords": ["docker", "containerization", "dockerfile", "devops"]
+    },
+    {
+      "name": "k8s-generator",
+      "source": "./skills/devops/k8s-generator",
+      "description": "Generate production-ready Kubernetes manifests with best practices",
+      "version": "1.0.0",
+      "keywords": ["kubernetes", "k8s", "deployment", "cloud-native"]
+    },
+    {
+      "name": "cicd-pipeline-builder",
+      "source": "./skills/devops/cicd-pipeline-builder",
+      "description": "Generate CI/CD pipelines for GitHub Actions, GitLab CI with best practices",
+      "version": "1.0.0",
+      "keywords": ["cicd", "github-actions", "gitlab-ci", "automation"]
+    },
+    {
+      "name": "security-scanner",
+      "source": "./skills/security/security-scanner",
+      "description": "Comprehensive security scanner for vulnerabilities and OWASP Top 10 issues",
+      "version": "1.0.0",
+      "keywords": ["security", "vulnerability", "owasp", "secrets"]
+    },
+    {
+      "name": "changelog-generator",
+      "source": "./skills/automation/changelog-generator",
+      "description": "Generate beautiful CHANGELOG.md from git commits",
+      "version": "1.0.0",
+      "keywords": ["changelog", "documentation", "git", "versioning"]
+    },
+    {
+      "name": "git-hooks-manager",
+      "source": "./skills/automation/git-hooks-manager",
+      "description": "Setup git hooks for pre-commit, pre-push automation",
+      "version": "1.0.0",
+      "keywords": ["git", "hooks", "pre-commit", "automation"]
+    },
+    {
+      "name": "qa-engineer",
+      "source": "./skills/agents/qa-engineer",
+      "description": "QA specialist agent for test planning and quality assurance",
+      "version": "1.0.0",
+      "keywords": ["qa", "testing", "quality-assurance", "agent"]
+    },
+    {
+      "name": "devops-specialist",
+      "source": "./skills/agents/devops-specialist",
+      "description": "DevOps agent for deployment and infrastructure automation",
+      "version": "1.0.0",
+      "keywords": ["devops", "deployment", "infrastructure", "agent"]
+    },
+    {
+      "name": "backend-architect",
+      "source": "./skills/agents/backend-architect",
+      "description": "Backend architecture agent for scalable API and database design",
+      "version": "1.0.0",
+      "keywords": ["backend", "architecture", "api", "agent"]
+    },
+    {
+      "name": "frontend-specialist",
+      "source": "./skills/agents/frontend-specialist",
+      "description": "Frontend specialist agent for React, Vue, and modern web development",
+      "version": "1.0.0",
+      "keywords": ["frontend", "react", "vue", "ui", "agent"]
+    },
+    {
+      "name": "data-engineer",
+      "source": "./skills/agents/data-engineer",
+      "description": "Data engineering agent for ETL pipelines and analytics",
+      "version": "1.0.0",
+      "keywords": ["data-engineering", "etl", "analytics", "agent"]
+    },
+    {
+      "name": "performance-optimizer",
+      "source": "./skills/development/performance-optimizer",
+      "description": "Analyze and optimize code performance, identify bottlenecks, and suggest improvements",
+      "version": "1.0.0",
+      "keywords": ["performance", "optimization", "profiling", "bottleneck", "speed"]
+    },
+    {
+      "name": "environment-manager",
+      "source": "./skills/devops/environment-manager",
+      "description": "Manage development environments, configurations, and secrets across local, staging, and production",
+      "version": "1.0.0",
+      "keywords": ["environment", "configuration", "env-vars", "secrets", "dotenv"]
+    },
+    {
+      "name": "tech-writer",
+      "source": "./skills/documentation/tech-writer",
+      "description": "Technical documentation specialist - create docs, API references, user guides for technical and non-technical audiences",
+      "version": "1.0.0",
+      "keywords": ["documentation", "technical-writing", "user-guides", "api-docs", "communication"]
+    },
+    {
+      "name": "deployment-manager",
+      "source": "./skills/devops/deployment-manager",
+      "description": "Automated deployment orchestration with rollback, blue-green, and canary deployment strategies",
+      "version": "1.0.0",
+      "keywords": ["deployment", "automation", "rollback", "blue-green", "canary", "orchestration"]
+    }
+  ]
+}

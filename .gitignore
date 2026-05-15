@@ -1,0 +1,10 @@
+node_modules/
+.next/
+target/
+*.log
+.DS_Store
+.env
+.env.local
+.gemini/
+apache-maven-3.9.6/
+backend/apache-maven-3.9.6/
