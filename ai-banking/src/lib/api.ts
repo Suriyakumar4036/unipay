@@ -9,6 +9,7 @@ export const fetchWithAuth = async (endpoint: string, options: RequestInit = {})
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
+  headers.set('bypass-tunnel-reminder', 'true');
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
