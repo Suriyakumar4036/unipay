@@ -1,12 +1,17 @@
-# Ignore non-core folders for GitHub language detection
+# Ignore internal folders for GitHub language detection
 .skills/** linguist-vendored
 .gemini/** linguist-vendored
-ai-banking/** linguist-vendored
+ai-banking/.next/** linguist-vendored
+backend/target/** linguist-vendored
+
+# Hide internal/configuration scripts
 *.py linguist-vendored
-*.css linguist-vendored
 *.json linguist-vendored
 
-# Explicitly force Java as the primary detectable language
-backend/src/main/java/**/*.java linguist-detectable=true
+# Allow core languages to be detected
 *.java linguist-detectable=true
+*.tsx linguist-detectable=true
+*.ts linguist-detectable=true
+*.css linguist-detectable=true
+
 
