@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchWithAuth } from "@/lib/api";
-import { Wallet, ArrowUpRight, ArrowDownRight, Activity, X, Calendar, Clock, DollarSign, User as UserIcon, Hash, Send, CreditCard, ArrowLeft, ShieldCheck, Zap, ChevronRight, CheckCircle2, Lock, Globe } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownRight, Activity, X, Calendar, Clock, DollarSign, User as UserIcon, Hash, Send, CreditCard, ArrowLeft, ShieldCheck, Zap, ChevronRight, CheckCircle2, Lock, Globe, Plus, AlertCircle } from "lucide-react";
 
 
 
@@ -87,16 +87,26 @@ export default function Dashboard() {
   const [globalId, setGlobalId] = useState("");
   const [selectedTx, setSelectedTx] = useState<any>(null);
   const [showTopUp, setShowTopUp] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState("");
   const [topUpCurrency, setTopUpCurrency] = useState("INR");
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentStep, setPaymentStep] = useState<"form" | "cards" | "verify" | "success">("form");
   const [selectedCard, setSelectedCard] = useState<any>(null);
-  const [verifyPassword, setVerifyPassword] = useState("");
+  const [verifyPin, setVerifyPin] = useState("");
   const [savedCards, setSavedCards] = useState<any[]>([]);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [showOtherCurrencies, setShowOtherCurrencies] = useState(false);
+
+  // Onboarding Form State
+  const [newCard, setNewCard] = useState({
+    cardNumber: "",
+    cvv: "",
+    expiryDate: "",
+    network: "VISA",
+    pin: ""
+  });
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type });
@@ -111,50 +121,26 @@ export default function Dashboard() {
         balance: (parseFloat(w.balance || "0")).toFixed(2)
       }));
       setWallets(processedWallets);
-      safeStorage.setItem("unipay_wallets", JSON.stringify(processedWallets));
 
       const txData = await fetchWithAuth("/transactions");
       setTransactions(txData);
 
       const cardsData = await fetchWithAuth("/cards");
       setSavedCards(cardsData);
-      safeStorage.setItem("unipay_cards", JSON.stringify(cardsData));
+      
+      // Force onboarding if no cards
+      if (cardsData.length === 0) {
+        setShowOnboarding(true);
+      } else {
+        setShowOnboarding(false);
+      }
+      
       setIsDemoMode(false);
     } catch (err) {
       setIsDemoMode(true);
-      const cachedWallets = safeStorage.getItem("unipay_wallets");
-      try {
-        const parsedWallets = cachedWallets ? JSON.parse(cachedWallets) : [];
-        if (parsedWallets.length > 0) {
-          setWallets(parsedWallets);
-        } else {
-          setWallets([
-            { currency: "INR", balance: "0.00" },
-            { currency: "USD", balance: "0.00" },
-            { currency: "EUR", balance: "0.00" },
-            { currency: "GBP", balance: "0.00" },
-            { currency: "JPY", balance: "0.00" },
-            { currency: "AUD", balance: "0.00" }
-          ]);
-        }
-      } catch (_) {
-         setWallets([{ currency: "INR", balance: "0.00" }]);
-      }
-
-      const cachedCards = safeStorage.getItem("unipay_cards");
-      try {
-        const parsedCards = cachedCards ? JSON.parse(cachedCards) : [];
-        if (parsedCards.length > 0) {
-          setSavedCards(parsedCards);
-        } else {
-          setSavedCards([
-            { id: "demo-1", cardType: "DEBIT CARD", network: "VISA", cardNumber: "4932530646388336", expiryDate: "07/30" },
-            { id: "demo-2", cardType: "CREDIT CARD", network: "MASTERCARD", cardNumber: "5588165001341432", expiryDate: "03/29" }
-          ]);
-        }
-      } catch (_) {
-        setSavedCards([]);
-      }
+      // Demo fallback
+      setSavedCards([]);
+      setShowOnboarding(true);
     }
   };
 
@@ -163,9 +149,36 @@ export default function Dashboard() {
     fetchDashboardData();
   }, [router]);
 
+  const handleProvisionCard = async () => {
+    if (newCard.cardNumber.length < 16 || newCard.cvv.length < 3 || !newCard.pin) {
+      showToast("Please enter valid card details.", "error");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      if (isDemoMode) {
+        await new Promise(r => setTimeout(r, 1000));
+        setSavedCards([{ id: 'demo', ...newCard, cardType: 'DEBIT' }]);
+        setShowOnboarding(false);
+      } else {
+        await fetchWithAuth("/cards/provision", {
+          method: 'POST',
+          body: JSON.stringify(newCard)
+        });
+        await fetchDashboardData();
+      }
+      showToast("Card linked successfully!");
+    } catch (err) {
+      showToast("Failed to link card.", "error");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleFinalPayment = async () => {
-    if (!verifyPassword) {
-      showToast("Please enter your password for verification.", "error");
+    if (verifyPin.length < 4) {
+      showToast("Please enter your card PIN.", "error");
       return;
     }
     
@@ -175,8 +188,23 @@ export default function Dashboard() {
     try {
       if (isDemoMode) {
         await new Promise(resolve => setTimeout(resolve, 1500));
-        setWallets(prev => prev.map(w => w.currency === topUpCurrency ? { ...w, balance: (parseFloat(w.balance) + amount).toFixed(2) } : w));
+        if (verifyPin === "1234" || verifyPin === selectedCard.pin) {
+           setWallets(prev => prev.map(w => w.currency === topUpCurrency ? { ...w, balance: (parseFloat(w.balance) + amount).toFixed(2) } : w));
+           setPaymentStep("success");
+        } else {
+           throw new Error("Invalid PIN");
+        }
       } else {
+        // Verify PIN first
+        const pinCheck = await fetchWithAuth("/cards/verify-pin", {
+          method: 'POST',
+          body: JSON.stringify({ cardId: selectedCard.id, pin: verifyPin })
+        });
+
+        if (!pinCheck.valid) {
+          throw new Error("Invalid Card PIN");
+        }
+
         await fetchWithAuth("/api/payments/verify-payment", {
           method: 'POST',
           body: JSON.stringify({
@@ -188,10 +216,10 @@ export default function Dashboard() {
           })
         });
         await fetchDashboardData();
+        setPaymentStep("success");
       }
-      setPaymentStep("success");
-    } catch (err) {
-      showToast("Payment failed. Please check your credentials.", "error");
+    } catch (err: any) {
+      showToast(err.message || "Payment failed.", "error");
     } finally {
       setIsProcessing(false);
     }
@@ -334,6 +362,105 @@ export default function Dashboard() {
           </div>
         </section>
       </div>
+
+      {/* Onboarding: First Time Card Setup */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="absolute inset-0 bg-black/95 backdrop-blur-2xl"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+              className="glass max-w-2xl w-full p-8 md:p-12 rounded-[3rem] relative z-10 border border-white/10"
+            >
+              <div className="text-center mb-10">
+                 <div className="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <ShieldCheck className="w-10 h-10 text-indigo-400" />
+                 </div>
+                 <h2 className="text-3xl font-black text-white mb-2 font-outfit">Welcome to UniPay</h2>
+                 <p className="text-zinc-500">To start transacting, please link your primary debit or credit card.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div className="space-y-4">
+                    <div>
+                       <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest block mb-2">Card Number (16 Digits)</label>
+                       <input 
+                         type="text" 
+                         maxLength={16}
+                         value={newCard.cardNumber}
+                         onChange={(e) => setNewCard({...newCard, cardNumber: e.target.value.replace(/\D/g, '')})}
+                         className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white font-bold focus:border-indigo-500 outline-none"
+                         placeholder="0000 0000 0000 0000"
+                       />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                       <div>
+                          <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest block mb-2">Expiry</label>
+                          <input 
+                            type="text" 
+                            maxLength={5}
+                            value={newCard.expiryDate}
+                            onChange={(e) => setNewCard({...newCard, expiryDate: e.target.value})}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white font-bold focus:border-indigo-500 outline-none"
+                            placeholder="MM/YY"
+                          />
+                       </div>
+                       <div>
+                          <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest block mb-2">CVV</label>
+                          <input 
+                            type="password" 
+                            maxLength={3}
+                            value={newCard.cvv}
+                            onChange={(e) => setNewCard({...newCard, cvv: e.target.value.replace(/\D/g, '')})}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white font-bold focus:border-indigo-500 outline-none"
+                            placeholder="•••"
+                          />
+                       </div>
+                    </div>
+                 </div>
+                 <div className="space-y-4">
+                    <div>
+                       <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest block mb-2">Card Network</label>
+                       <select 
+                         value={newCard.network}
+                         onChange={(e) => setNewCard({...newCard, network: e.target.value})}
+                         className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white font-bold focus:border-indigo-500 outline-none appearance-none"
+                       >
+                          <option value="VISA">VISA</option>
+                          <option value="MASTERCARD">MASTERCARD</option>
+                          <option value="RUPAY">RUPAY</option>
+                          <option value="AMEX">AMEX</option>
+                       </select>
+                    </div>
+                    <div>
+                       <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest block mb-2">Setup Transaction PIN</label>
+                       <input 
+                         type="password" 
+                         maxLength={4}
+                         value={newCard.pin}
+                         onChange={(e) => setNewCard({...newCard, pin: e.target.value.replace(/\D/g, '')})}
+                         className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white font-bold focus:border-indigo-500 outline-none"
+                         placeholder="Set 4-digit PIN"
+                       />
+                       <p className="text-[8px] text-zinc-600 mt-2 font-bold uppercase tracking-widest">This PIN will be asked for every transaction</p>
+                    </div>
+                 </div>
+              </div>
+
+              <button 
+                onClick={handleProvisionCard}
+                disabled={isProcessing}
+                className="w-full mt-10 bg-indigo-500 hover:bg-indigo-600 text-white font-black py-5 rounded-2xl transition-all shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-3"
+              >
+                {isProcessing ? <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Verify & Complete Setup"}
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Transaction Detail Modal */}
       <AnimatePresence>
@@ -541,7 +668,7 @@ export default function Dashboard() {
                       ) : (
                         <div className="w-full text-center py-8">
                            <p className="text-zinc-500 text-sm mb-2">No cards available.</p>
-                           <Link href="/cards" className="text-indigo-400 font-bold hover:underline">Issue a card</Link>
+                           <button onClick={() => { setShowTopUp(false); setShowOnboarding(true); }} className="text-indigo-400 font-bold hover:underline">Link a card</button>
                         </div>
                       )}
                     </div>
@@ -566,30 +693,31 @@ export default function Dashboard() {
                        <div className="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
                           <Lock className="w-8 h-8 text-indigo-400" />
                        </div>
-                       <h4 className="text-white text-xl font-black mb-2">Security Verification</h4>
-                       <p className="text-zinc-500 text-xs">Enter your account password to confirm this <span className="text-indigo-400 font-bold">{topUpAmount} {topUpCurrency}</span> transaction.</p>
+                       <h4 className="text-white text-xl font-black mb-2">Card Security PIN</h4>
+                       <p className="text-zinc-500 text-xs">Enter your 4-digit PIN for card ending in <span className="text-indigo-400 font-bold">{selectedCard?.cardNumber?.slice(-4)}</span>.</p>
                     </div>
 
                     <div className="space-y-4">
                       <input 
                         type="password"
-                        value={verifyPassword}
-                        onChange={(e) => setVerifyPassword(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white text-center font-bold focus:outline-none focus:border-indigo-500 transition-all placeholder:text-zinc-700"
-                        placeholder="••••••••"
+                        maxLength={4}
+                        value={verifyPin}
+                        onChange={(e) => setVerifyPin(e.target.value.replace(/\D/g, ''))}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white text-center text-2xl font-black tracking-[1em] focus:outline-none focus:border-indigo-500 transition-all placeholder:text-zinc-700"
+                        placeholder="••••"
                         autoFocus
                       />
                     </div>
 
                     <button 
-                      disabled={!verifyPassword || isProcessing}
+                      disabled={verifyPin.length < 4 || isProcessing}
                       onClick={handleFinalPayment}
                       className="w-full bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-black py-5 rounded-2xl transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-3 text-lg"
                     >
                       {isProcessing ? (
                         <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
                       ) : (
-                        <>Confirm Payment <CheckCircle2 className="w-5 h-5" /></>
+                        <>Verify PIN & Pay <CheckCircle2 className="w-5 h-5" /></>
                       )}
                     </button>
                   </motion.div>

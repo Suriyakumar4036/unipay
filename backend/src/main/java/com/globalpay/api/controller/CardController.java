@@ -9,6 +9,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 @RestController
@@ -30,15 +31,39 @@ public class CardController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         List<Card> cards = cardRepository.findByUserId(user.getId());
-        
-        // If no cards exist, generate a default one for the user (simulation)
-        if (cards.isEmpty()) {
-            Card defaultCard = generateVirtualCard(user, "DEBIT", "VISA");
-            cardRepository.save(defaultCard);
-            cards = List.of(defaultCard);
-        }
-        
         return ResponseEntity.ok(cards);
+    }
+
+    @PostMapping("/provision")
+    public ResponseEntity<Card> provisionCard(@RequestBody Map<String, String> request) {
+        String globalId = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByGlobalId(globalId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Card card = new Card();
+        card.setUser(user);
+        card.setCardNumber(request.get("cardNumber"));
+        card.setCvv(request.get("cvv"));
+        card.setExpiryDate(request.get("expiryDate"));
+        card.setNetwork(request.get("network"));
+        card.setPin(request.get("pin"));
+        card.setCardType("DEBIT"); // Default for provisioned cards
+        card.setCardholderName(user.getName().toUpperCase());
+        card.setStatus("ACTIVE");
+
+        return ResponseEntity.ok(cardRepository.save(card));
+    }
+
+    @PostMapping("/verify-pin")
+    public ResponseEntity<Map<String, Boolean>> verifyPin(@RequestBody Map<String, String> request) {
+        String cardId = request.get("cardId");
+        String pin = request.get("pin");
+        
+        Card card = cardRepository.findById(cardId)
+                .orElseThrow(() -> new RuntimeException("Card not found"));
+        
+        boolean isValid = card.getPin().equals(pin);
+        return ResponseEntity.ok(Map.of("valid", isValid));
     }
 
     @PostMapping("/issue")
@@ -65,6 +90,7 @@ public class CardController {
         String expiry = String.format("%02d/%02d", random.nextInt(12) + 1, random.nextInt(5) + 26);
         String cvv = String.format("%03d", random.nextInt(1000));
         
-        return new Card(user, type, formattedNumber, user.getName().toUpperCase(), expiry, cvv, network, "ACTIVE");
+        // For auto-generated cards, we'll set a default PIN 1234
+        return new Card(user, type, formattedNumber, user.getName().toUpperCase(), expiry, cvv, network, "1234", "ACTIVE");
     }
 }

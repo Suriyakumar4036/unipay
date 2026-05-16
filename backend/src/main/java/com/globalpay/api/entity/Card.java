@@ -20,12 +20,13 @@ public class Card {
     private String expiryDate; // MM/YY
     private String cvv;
     private String network; // VISA, MASTERCARD
+    private String pin;
     private String status; // ACTIVE, BLOCKED
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public Card() {}
 
-    public Card(User user, String cardType, String cardNumber, String cardholderName, String expiryDate, String cvv, String network, String status) {
+    public Card(User user, String cardType, String cardNumber, String cardholderName, String expiryDate, String cvv, String network, String pin, String status) {
         this.user = user;
         this.cardType = cardType;
         this.cardNumber = cardNumber;
@@ -33,6 +34,7 @@ public class Card {
         this.expiryDate = expiryDate;
         this.cvv = cvv;
         this.network = network;
+        this.pin = pin;
         this.status = status;
     }
 
@@ -59,6 +61,9 @@ public class Card {
 
     public String getNetwork() { return network; }
     public void setNetwork(String network) { this.network = network; }
+
+    public String getPin() { return pin; }
+    public void setPin(String pin) { this.pin = pin; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
