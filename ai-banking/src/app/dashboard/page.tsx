@@ -352,30 +352,81 @@ export default function Dashboard() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-2">Target Wallet</label>
-                  <select 
-                    value={topUpCurrency}
-                    onChange={(e) => setTopUpCurrency(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold focus:outline-none focus:border-indigo-500 transition-colors"
+                <div className="grid grid-cols-2 gap-4">
+                   <button 
+                     onClick={() => setTopUpCurrency("INR")}
+                     className={`p-4 rounded-2xl border transition-all text-xs font-bold ${topUpCurrency === "INR" ? "bg-indigo-500/20 border-indigo-500 text-white" : "bg-white/5 border-white/10 text-zinc-500 hover:border-white/20"}`}
+                   >
+                     INR (₹)
+                   </button>
+                   <button 
+                     onClick={() => setTopUpCurrency("USD")}
+                     className={`p-4 rounded-2xl border transition-all text-xs font-bold ${topUpCurrency === "USD" ? "bg-indigo-500/20 border-indigo-500 text-white" : "bg-white/5 border-white/10 text-zinc-500 hover:border-white/20"}`}
+                   >
+                     USD ($)
+                   </button>
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Select Payment Method</p>
+                  
+                  {/* Card Option */}
+                  <button 
+                    onClick={handleRazorpayPayment}
+                    className="w-full glass hover:bg-white/10 border border-white/10 p-4 rounded-2xl transition-all flex items-center justify-between group"
                   >
-                    <option value="INR">Indian Rupee (INR)</option>
-                    <option value="USD">US Dollar (USD)</option>
-                    <option value="EUR">Euro (EUR)</option>
-                  </select>
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center group-hover:bg-indigo-500/30 transition-colors">
+                        <CreditCard className="w-5 h-5 text-indigo-400" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-white font-bold text-sm">Debit / Credit Card</p>
+                        <p className="text-zinc-500 text-[10px]">Visa, Mastercard, RuPay</p>
+                      </div>
+                    </div>
+                    <ArrowUpRight className="w-4 h-4 text-zinc-600 group-hover:text-white transition-colors" />
+                  </button>
+
+                  {/* QR Code Option */}
+                  <div className="relative overflow-hidden group">
+                    <button 
+                      className="w-full glass hover:bg-white/10 border border-white/10 p-4 rounded-2xl transition-all flex items-center justify-between"
+                      onClick={() => {
+                        // Toggle QR display (simulated)
+                        const qrEl = document.getElementById('qr-display');
+                        if (qrEl) qrEl.classList.toggle('hidden');
+                      }}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
+                          <Activity className="w-5 h-5 text-green-400" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-white font-bold text-sm">QR Code / UPI</p>
+                          <p className="text-zinc-500 text-[10px]">Instant Scan & Pay</p>
+                        </div>
+                      </div>
+                      <ArrowUpRight className="w-4 h-4 text-zinc-600" />
+                    </button>
+                    
+                    <div id="qr-display" className="hidden mt-4 p-6 glass rounded-3xl border border-white/5 flex flex-col items-center">
+                       <img 
+                         src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=unipay@bank%26pn=UniPay%26am=${topUpAmount}%26cu=INR`} 
+                         alt="Payment QR"
+                         className="w-32 h-32 rounded-xl mb-4 bg-white p-2"
+                       />
+                       <p className="text-zinc-400 text-[10px] font-bold text-center">Scan with any UPI App to pay</p>
+                       <p className="text-white text-xs font-black mt-1">₹{topUpAmount || "0"}</p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="p-4 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 text-[10px] text-indigo-300 leading-relaxed">
-                  Payments are processed securely via Razorpay. Funds will be credited to your wallet instantly after successful verification.
+                <div className="p-4 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 text-[10px] text-indigo-300 leading-relaxed text-center">
+                  Payments are secure and encrypted. <br />
+                  Funds are settled within 60 seconds.
                 </div>
-
-                <button 
-                  onClick={handleRazorpayPayment}
-                  className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
-                >
-                  <CreditCard className="w-5 h-5" /> Pay with Razorpay
-                </button>
               </div>
+
             </motion.div>
           </div>
         )}
