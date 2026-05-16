@@ -1,0 +1,14 @@
+# Ignore non-core folders for GitHub language detection
+.skills/** linguist-vendored
+.gemini/** linguist-vendored
+ai-banking/.next/** linguist-vendored
+backend/target/** linguist-vendored
+
+# Explicitly mark core files
+*.java linguist-detectable=true
+*.tsx linguist-detectable=true
+*.ts linguist-detectable=true
+*.css linguist-detectable=true
+
+# Mark Python files in the repository as non-detectable (since the core is Java/TS)
+*.py linguist-detectable=false
