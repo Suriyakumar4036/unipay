@@ -199,7 +199,7 @@ export default function Dashboard() {
                 className="glass p-8 rounded-[2rem] border-l-4 border-l-indigo-500"
               >
                 <p className="text-zinc-500 text-sm font-bold tracking-widest uppercase mb-2">{w.currency}</p>
-                <h3 className="text-4xl font-black text-white">{w.balance.toFixed(2)}</h3>
+                <h3 className="text-4xl font-black text-white">{Number(w.balance).toFixed(2)}</h3>
               </motion.div>
             ))}
           </div>
