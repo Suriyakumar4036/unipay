@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchWithAuth } from "@/lib/api";
-import { Wallet, ArrowUpRight, ArrowDownRight, Activity, X, Calendar, Clock, DollarSign, User as UserIcon, Hash, Send, CreditCard, ArrowLeft, ShieldCheck, Zap, ChevronRight, CheckCircle2 } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownRight, Activity, X, Calendar, Clock, DollarSign, User as UserIcon, Hash, Send, CreditCard, ArrowLeft, ShieldCheck, Zap, ChevronRight, CheckCircle2, Lock } from "lucide-react";
 
 
 
@@ -90,8 +90,9 @@ export default function Dashboard() {
   const [topUpAmount, setTopUpAmount] = useState("");
   const [topUpCurrency, setTopUpCurrency] = useState("INR");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentStep, setPaymentStep] = useState<"form" | "cards" | "success">("form");
+  const [paymentStep, setPaymentStep] = useState<"form" | "cards" | "verify" | "success">("form");
   const [selectedCard, setSelectedCard] = useState<any>(null);
+  const [verifyPassword, setVerifyPassword] = useState("");
   const [savedCards, setSavedCards] = useState<any[]>([]);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
@@ -104,7 +105,6 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       const walletsData = await fetchWithAuth("/wallet/balance");
-      // Handle empty wallets or null balances
       const processedWallets = walletsData.map((w: any) => ({
         ...w,
         balance: (parseFloat(w.balance || "0")).toFixed(2)
@@ -160,8 +160,8 @@ export default function Dashboard() {
   }, [router]);
 
   const handleFinalPayment = async () => {
-    if (!selectedCard) {
-      showToast("Please select a virtual card.", "error");
+    if (!verifyPassword) {
+      showToast("Please enter your password for verification.", "error");
       return;
     }
     
@@ -173,6 +173,7 @@ export default function Dashboard() {
         await new Promise(resolve => setTimeout(resolve, 1500));
         setWallets(prev => prev.map(w => w.currency === topUpCurrency ? { ...w, balance: (parseFloat(w.balance) + amount).toFixed(2) } : w));
       } else {
+        // In a real app, we would verify the password here too
         await fetchWithAuth("/api/payments/verify-payment", {
           method: 'POST',
           body: JSON.stringify({
@@ -187,7 +188,7 @@ export default function Dashboard() {
       }
       setPaymentStep("success");
     } catch (err) {
-      showToast("Payment failed. Please try again.", "error");
+      showToast("Payment failed. Please check your credentials.", "error");
     } finally {
       setIsProcessing(false);
     }
@@ -330,7 +331,7 @@ export default function Dashboard() {
         </section>
       </div>
 
-      {/* Transaction Detail Modal (POP UP) */}
+      {/* Transaction Detail Modal */}
       <AnimatePresence>
         {selectedTx && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-6">
@@ -343,7 +344,6 @@ export default function Dashboard() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="glass w-full max-w-lg rounded-[3rem] p-8 md:p-12 relative z-10 border border-white/10 overflow-hidden"
             >
-              {/* Background Glow */}
               <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full" />
               
               <div className="flex justify-between items-center mb-10 relative z-10">
@@ -359,7 +359,6 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-8 relative z-10">
-                {/* User Info Card */}
                 <div className="flex items-center gap-5 p-6 bg-white/5 rounded-[2rem] border border-white/10">
                    <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-black">
                       {(selectedTx.sender.globalId === globalId ? selectedTx.receiver.name : selectedTx.sender.name).charAt(0)}
@@ -371,7 +370,6 @@ export default function Dashboard() {
                    </div>
                 </div>
 
-                {/* Details Grid */}
                 <div className="grid grid-cols-2 gap-4">
                    <div className="p-5 bg-white/5 rounded-2xl border border-white/5">
                       <div className="flex items-center gap-2 mb-2">
@@ -396,7 +394,6 @@ export default function Dashboard() {
                    </div>
                 </div>
 
-                {/* Amount */}
                 <div className="text-center py-4 border-y border-white/5">
                    <p className="text-zinc-600 text-[9px] font-black uppercase tracking-[0.3em] mb-2">Amount Transacted</p>
                    <h2 className="text-4xl font-black text-white">
@@ -521,9 +518,44 @@ export default function Dashboard() {
                     </div>
 
                     <button 
-                      disabled={!selectedCard || isProcessing}
+                      disabled={!selectedCard}
+                      onClick={() => setPaymentStep("verify")}
+                      className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-black py-5 rounded-2xl transition-all shadow-[0_10px_30px_rgba(99,102,241,0.3)] flex items-center justify-center gap-3 text-lg"
+                    >
+                      Continue <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </motion.div>
+                )}
+
+                {paymentStep === "verify" && (
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+                    <button onClick={() => setPaymentStep("cards")} className="text-zinc-500 hover:text-white flex items-center gap-2 text-xs font-bold mb-4 group transition-colors">
+                      <ArrowLeft className="w-3 h-3 group-hover:-translate-x-1 transition-transform" /> Change Card
+                    </button>
+                    
+                    <div className="text-center mb-8">
+                       <div className="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Lock className="w-8 h-8 text-indigo-400" />
+                       </div>
+                       <h4 className="text-white text-xl font-black mb-2">Security Verification</h4>
+                       <p className="text-zinc-500 text-xs">Enter your account password to confirm this <span className="text-indigo-400 font-bold">{topUpAmount} {topUpCurrency}</span> transaction.</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <input 
+                        type="password"
+                        value={verifyPassword}
+                        onChange={(e) => setVerifyPassword(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white text-center font-bold focus:outline-none focus:border-indigo-500 transition-all placeholder:text-zinc-700"
+                        placeholder="••••••••"
+                        autoFocus
+                      />
+                    </div>
+
+                    <button 
+                      disabled={!verifyPassword || isProcessing}
                       onClick={handleFinalPayment}
-                      className="w-full bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-black py-5 rounded-2xl transition-all shadow-[0_10px_30px_rgba(99,102,241,0.3)] flex items-center justify-center gap-3 text-lg"
+                      className="w-full bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-black py-5 rounded-2xl transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-3 text-lg"
                     >
                       {isProcessing ? (
                         <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
