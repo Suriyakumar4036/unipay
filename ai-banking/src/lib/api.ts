@@ -8,7 +8,8 @@ const safeStorage = {
 
 const getApiBaseUrl = () => {
   // 1. Check for explicit environment variable (Best for Vercel/Netlify)
-  if (process.env.NEXT_PUBLIC_API_URL) {
+  // We ignore it if it's still pointing to the outdated loca.lt domain
+  if (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('loca.lt')) {
     return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "");
   }
   
