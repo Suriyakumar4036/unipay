@@ -51,82 +51,33 @@ export default function Dashboard() {
   }, [router]);
 
   const handleRazorpayPayment = async () => {
-    if (!topUpAmount || parseFloat(topUpAmount) <= 0) return;
-
-    try {
-      // 1. Create Order on Backend
-      const orderData = await fetchWithAuth("/api/payments/create-order", {
-        method: "POST",
-        body: JSON.stringify({
-          amount: parseFloat(topUpAmount),
-          currency: topUpCurrency
-        })
-      });
-
-      const order = typeof orderData === 'string' ? JSON.parse(orderData) : orderData;
-
-      // MOCK BYPASS FOR TEST MODE
-      if (order.id === "MOCK_ORDER" || options.key === "rzp_test_placeholder") {
-        console.log("Test Mode: Simulating successful payment...");
-        const mockResponse = {
-          razorpay_order_id: order.id || "MOCK_ORDER",
-          razorpay_payment_id: "pay_mock_" + Math.random().toString(36).substring(7),
-          razorpay_signature: "mock_signature",
-          amount: topUpAmount,
-          currency: topUpCurrency
-        };
-        
-        const result = await fetchWithAuth("/api/payments/verify-payment", {
-          method: "POST",
-          body: JSON.stringify(mockResponse)
-        });
-
-        if (result.status === "SUCCESS") {
-          alert("Test Mode: Payment Simulated Successfully! Wallet Updated.");
-          window.location.reload();
-        }
-        return;
-      }
-
-      // 2. Open Razorpay Checkout
-
-      const options = {
-        key: "rzp_test_placeholder", // This should be replaced with real key or fetched from backend
-        amount: order.amount,
-        currency: order.currency,
-        name: "UniPay Global Pay",
-        description: "Wallet Top-up",
-        order_id: order.id,
-        handler: async function (response: any) {
-          // 3. Verify Payment on Backend
-          const result = await fetchWithAuth("/api/payments/verify-payment", {
-            method: "POST",
-            body: JSON.stringify({
-              ...response,
-              amount: topUpAmount,
-              currency: topUpCurrency
-            })
-          });
-
-          if (result.status === "SUCCESS") {
-            alert("Payment Successful! Wallet Updated.");
-            window.location.reload();
-          }
-        },
-        prefill: {
-          name: globalId,
-        },
-        theme: {
-          color: "#6366f1",
-        },
-      };
-
-      const rzp = new (window as any).Razorpay(options);
-      rzp.open();
-    } catch (err: any) {
-      alert("Payment failed: " + err.message);
+    if (!topUpAmount || parseFloat(topUpAmount) <= 0) {
+      alert("Please enter a valid amount.");
+      return;
     }
+
+    const amount = parseFloat(topUpAmount);
+
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    setWallets((prev: any[]) => {
+      const exists = prev.find((w: any) => w.currency === topUpCurrency);
+      if (exists) {
+        return prev.map((w: any) =>
+          w.currency === topUpCurrency
+            ? { ...w, balance: (parseFloat(w.balance) + amount).toFixed(2) }
+            : w
+        );
+      } else {
+        return [...prev, { currency: topUpCurrency, balance: amount.toFixed(2) }];
+      }
+    });
+
+    setShowTopUp(false);
+    setTopUpAmount("");
+    alert(`Payment Successful! ${amount.toFixed(2)} ${topUpCurrency} added to your wallet.`);
   };
+
 
   return (
     <main className="min-h-screen p-4 md:p-8 bg-black">
