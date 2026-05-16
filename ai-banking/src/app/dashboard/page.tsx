@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { fetchWithAuth } from "@/lib/api";
-import { Wallet, ArrowUpRight, ArrowDownRight, Activity } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownRight, Activity, X, Calendar, Clock, DollarSign, User as UserIcon, Hash } from "lucide-react";
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -13,6 +13,7 @@ export default function Dashboard() {
   const [wallets, setWallets] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [globalId, setGlobalId] = useState("");
+  const [selectedTx, setSelectedTx] = useState<any>(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -94,7 +95,8 @@ export default function Dashboard() {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.05 }}
-                      className="p-6 flex items-center justify-between hover:bg-white/5 transition-colors"
+                      onClick={() => setSelectedTx(tx)}
+                      className="p-6 flex items-center justify-between hover:bg-white/5 transition-colors cursor-pointer"
                     >
                       <div className="flex items-center gap-4">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isSender ? 'bg-rose-500/10 text-rose-400' : 'bg-green-500/10 text-green-400'}`}>
@@ -102,14 +104,14 @@ export default function Dashboard() {
                         </div>
                         <div>
                           <p className="text-white font-bold">{isSender ? `To ${tx.receiver.name}` : `From ${tx.sender.name}`}</p>
-                          <p className="text-zinc-500 text-xs mt-1">{new Date(tx.timestamp).toLocaleString()}</p>
+                          <p className="text-zinc-500 text-xs mt-1">{new Date(tx.timestamp).toLocaleDateString()} • {new Date(tx.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                         </div>
                       </div>
                       <div className="text-right">
                         <p className={`font-black text-lg ${isSender ? 'text-white' : 'text-green-400'}`}>
                           {isSender ? '-' : '+'}{isSender ? tx.amountSent : tx.amountReceived} {isSender ? tx.senderCurrency : tx.receiverCurrency}
                         </p>
-                        <p className="text-zinc-500 text-xs mt-1">{tx.status}</p>
+                        <p className="text-zinc-500 text-[10px] mt-1 font-bold uppercase tracking-widest">{tx.status}</p>
                       </div>
                     </motion.div>
                   )
@@ -119,6 +121,106 @@ export default function Dashboard() {
           </div>
         </section>
       </div>
+
+      {/* Transaction Detail Modal */}
+      <AnimatePresence>
+        {selectedTx && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedTx(null)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="glass w-full max-w-lg rounded-[2.5rem] p-8 md:p-12 relative z-10 overflow-hidden"
+            >
+              <div className="flex justify-between items-center mb-8">
+                <h3 className="text-2xl font-black text-white font-outfit">Transaction Details</h3>
+                <button 
+                  onClick={() => setSelectedTx(null)}
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors text-zinc-400 hover:text-white"
+                >
+                  <X />
+                </button>
+              </div>
+
+              <div className="space-y-8">
+                {/* Amount Header */}
+                <div className="text-center py-6 bg-white/5 rounded-[2rem] border border-white/10">
+                  <span className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-2 block">Total Amount</span>
+                  <h4 className={`text-5xl font-black ${selectedTx.sender.globalId === globalId ? 'text-white' : 'text-green-400'}`}>
+                    {selectedTx.sender.globalId === globalId ? '-' : '+'}{selectedTx.sender.globalId === globalId ? selectedTx.amountSent : selectedTx.amountReceived} {selectedTx.sender.globalId === globalId ? selectedTx.senderCurrency : selectedTx.receiverCurrency}
+                  </h4>
+                  <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-[10px] font-black uppercase tracking-widest border border-green-500/20">
+                    <Activity className="w-3 h-3" /> {selectedTx.status}
+                  </div>
+                </div>
+
+                {/* Info Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-indigo-500/10 rounded-2xl text-indigo-400">
+                        <Calendar className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1">Date</p>
+                        <p className="text-white font-bold">{new Date(selectedTx.timestamp).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-cyan-500/10 rounded-2xl text-cyan-400">
+                        <Clock className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1">Time</p>
+                        <p className="text-white font-bold">{new Date(selectedTx.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-400">
+                        <UserIcon className="w-5 h-5" />
+                      </div>
+                      <div className="overflow-hidden">
+                        <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1">
+                          {selectedTx.sender.globalId === globalId ? 'Recipient' : 'Sender'}
+                        </p>
+                        <p className="text-white font-bold truncate">{selectedTx.sender.globalId === globalId ? selectedTx.receiver.name : selectedTx.sender.name}</p>
+                        <p className="text-indigo-400 text-[10px] font-bold truncate">{selectedTx.sender.globalId === globalId ? selectedTx.receiver.globalId : selectedTx.sender.globalId}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-amber-500/10 rounded-2xl text-amber-400">
+                        <Hash className="w-5 h-5" />
+                      </div>
+                      <div className="overflow-hidden">
+                        <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1">Transaction ID</p>
+                        <p className="text-white font-mono text-[10px] break-all">{selectedTx.id}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => setSelectedTx(null)}
+                  className="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-2xl transition-all border border-white/5"
+                >
+                  Done
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
+

@@ -63,6 +63,16 @@ README.md      - Project documentation
    npm run dev
    ```
 
+## 🌍 Public Access & Production
+To allow everyone to access your website while running locally:
+1. **Start the Tunnel**: Use a service like Localtunnel to expose your backend.
+   ```bash
+   npx localtunnel --port 8080 --subdomain unipay-production-api
+   ```
+2. **Update Frontend**: Ensure the `NEXT_PUBLIC_API_URL` in your Netlify settings matches the tunnel URL.
+3. **Always On**: For 24/7 access, deploy the backend to a cloud provider like **Render** or **Railway** using the provided `Dockerfile` in the `/backend` directory.
+
+
 ## 🔐 Security & Compliance
 - All data is encrypted in transit using TLS.
 - Passwords are hashed using BCrypt.
