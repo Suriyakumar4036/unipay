@@ -21,6 +21,12 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const handleDemoLogin = () => {
+    localStorage.setItem("token", "demo-token");
+    localStorage.setItem("globalId", "demo@unipay");
+    router.push("/dashboard");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -132,13 +138,26 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="mt-8 text-center">
+        <div className="mt-8 text-center space-y-4">
           <button 
             type="button"
             onClick={() => setIsLogin(!isLogin)}
-            className="text-zinc-500 hover:text-white transition-colors text-sm font-bold"
+            className="text-zinc-500 hover:text-white transition-colors text-sm font-bold block w-full"
           >
             {isLogin ? "Don't have a Global ID? Sign up" : "Already have a Global ID? Log in"}
+          </button>
+          
+          <div className="relative py-2">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
+            <div className="relative flex justify-center text-[10px] uppercase tracking-widest font-black text-zinc-600"><span className="bg-black px-2 text-zinc-700">Offline Access</span></div>
+          </div>
+
+          <button 
+            type="button"
+            onClick={handleDemoLogin}
+            className="w-full bg-white/5 hover:bg-white/10 text-zinc-400 border border-white/10 rounded-2xl p-4 transition-all text-sm font-bold flex items-center justify-center gap-2 group"
+          >
+            Explore in Demo Mode →
           </button>
         </div>
       </motion.div>
