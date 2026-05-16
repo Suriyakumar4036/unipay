@@ -63,7 +63,15 @@
 			<version>0.12.5</version>
 			<scope>runtime</scope>
 		</dependency>
+
+		<!-- Razorpay SDK for real payments -->
+		<dependency>
+			<groupId>com.razorpay</groupId>
+			<artifactId>razorpay-java</artifactId>
+			<version>1.4.6</version>
+		</dependency>
 	</dependencies>
+
 
 	<build>
 		<plugins>
