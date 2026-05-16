@@ -67,16 +67,20 @@ public class CardController {
     }
 
     @PostMapping("/issue")
-    public ResponseEntity<Card> issueCard(@RequestParam String type, @RequestParam String network) {
+    public ResponseEntity<Card> issueCard(@RequestBody Map<String, String> request) {
         String globalId = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByGlobalId(globalId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Card newCard = generateVirtualCard(user, type, network);
+        String type = request.getOrDefault("type", "DEBIT");
+        String network = request.getOrDefault("network", "VISA");
+        String pin = request.getOrDefault("pin", "1234");
+
+        Card newCard = generateVirtualCard(user, type, network, pin);
         return ResponseEntity.ok(cardRepository.save(newCard));
     }
 
-    private Card generateVirtualCard(User user, String type, String network) {
+    private Card generateVirtualCard(User user, String type, String network, String pin) {
         Random random = new Random();
         StringBuilder cardNumber = new StringBuilder();
         if (network.equals("VISA")) cardNumber.append("4");
@@ -90,7 +94,6 @@ public class CardController {
         String expiry = String.format("%02d/%02d", random.nextInt(12) + 1, random.nextInt(5) + 26);
         String cvv = String.format("%03d", random.nextInt(1000));
         
-        // For auto-generated cards, we'll set a default PIN 1234
-        return new Card(user, type, formattedNumber, user.getName().toUpperCase(), expiry, cvv, network, "1234", "ACTIVE");
+        return new Card(user, type, formattedNumber, user.getName().toUpperCase(), expiry, cvv, network, pin, "ACTIVE");
     }
 }

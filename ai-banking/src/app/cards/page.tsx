@@ -23,6 +23,13 @@ export default function CardsPage() {
   const router = useRouter();
   const [cards, setCards] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showIssueModal, setShowIssueModal] = useState(false);
+  const [isIssuing, setIsIssuing] = useState(false);
+  const [issueForm, setIssueForm] = useState({
+    type: "CREDIT",
+    network: "VISA",
+    pin: ""
+  });
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
@@ -58,30 +65,44 @@ export default function CardsPage() {
     loadCards();
   }, []);
 
-  const issueNewCard = async (type: string, network: string) => {
+  const issueNewCard = async () => {
+    if (issueForm.pin.length < 4) {
+      showToast("Please set a 4-digit PIN.", "error");
+      return;
+    }
+
+    setIsIssuing(true);
     try {
-      const newCard = await fetchWithAuth(`/cards/issue?type=${type}&network=${network}`, {
-        method: 'POST'
+      const newCard = await fetchWithAuth(`/cards/issue`, {
+        method: 'POST',
+        body: JSON.stringify(issueForm)
       });
       const updated = [...cards, newCard];
       setCards(updated);
       safeStorage.setItem("unipay_cards", JSON.stringify(updated));
       showToast("Card issued successfully!");
+      setShowIssueModal(false);
+      setIssueForm({ ...issueForm, pin: "" });
     } catch (err) {
       // Fallback: Generate a demo card
       const newDemoCard = {
         id: `demo-${Date.now()}`,
-        cardType: type,
-        network: network,
-        cardNumber: `${network === "VISA" ? "4" : "5"}${Math.random().toString().slice(2, 17)}`,
+        cardType: issueForm.type,
+        network: issueForm.network,
+        cardNumber: `${issueForm.network === "VISA" ? "4" : "5"}${Math.random().toString().slice(2, 17)}`,
         expiryDate: "12/30",
         cvv: Math.floor(100 + Math.random() * 900).toString(),
-        cardholderName: "NEURAL USER"
+        cardholderName: "NEURAL USER",
+        pin: issueForm.pin
       };
       const updated = [...cards, newDemoCard];
       setCards(updated);
       safeStorage.setItem("unipay_cards", JSON.stringify(updated));
       showToast("Card issued (Demo Mode)");
+      setShowIssueModal(false);
+      setIssueForm({ ...issueForm, pin: "" });
+    } finally {
+      setIsIssuing(false);
     }
   };
 
@@ -114,7 +135,7 @@ export default function CardsPage() {
              <p className="text-zinc-500 text-sm mt-1">Manage your virtual and physical global cards.</p>
           </div>
           <button 
-            onClick={() => issueNewCard("CREDIT", "MASTERCARD")}
+            onClick={() => setShowIssueModal(true)}
             className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20"
           >
             <Plus className="w-5 h-5" /> New Virtual Card
@@ -208,6 +229,83 @@ export default function CardsPage() {
           </div>
         </div>
       </div>
+
+      {/* Issue Card Modal */}
+      <AnimatePresence>
+        {showIssueModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowIssueModal(false)}
+              className="absolute inset-0 bg-black/90 backdrop-blur-xl"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="glass max-w-md w-full p-8 md:p-10 rounded-[3rem] relative z-10 border border-white/10"
+            >
+              <div className="flex justify-between items-center mb-8">
+                <h3 className="text-2xl font-black text-white font-outfit">Issue Virtual Card</h3>
+                <button onClick={() => setShowIssueModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-zinc-400 hover:text-white">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest block mb-2">Card Type</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {["DEBIT", "CREDIT"].map(t => (
+                      <button 
+                        key={t}
+                        onClick={() => setIssueForm({...issueForm, type: t})}
+                        className={`p-4 rounded-2xl border font-bold transition-all ${issueForm.type === t ? "bg-indigo-500 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-white/5 border-white/10 text-zinc-500 hover:border-white/20"}`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest block mb-2">Network</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {["VISA", "MASTERCARD"].map(n => (
+                      <button 
+                        key={n}
+                        onClick={() => setIssueForm({...issueForm, network: n})}
+                        className={`p-4 rounded-2xl border font-bold transition-all ${issueForm.network === n ? "bg-indigo-500 border-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-white/5 border-white/10 text-zinc-500 hover:border-white/20"}`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest block mb-2">Setup Transaction PIN</label>
+                  <input 
+                    type="password" 
+                    maxLength={4}
+                    value={issueForm.pin}
+                    onChange={(e) => setIssueForm({...issueForm, pin: e.target.value.replace(/\D/g, '')})}
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white text-center text-3xl font-black tracking-[1em] focus:border-indigo-500 outline-none transition-all placeholder:text-zinc-800"
+                    placeholder="••••"
+                  />
+                  <p className="text-[8px] text-zinc-600 mt-3 font-bold uppercase tracking-widest text-center">This PIN will be required for all transactions using this card</p>
+                </div>
+              </div>
+
+              <button 
+                onClick={issueNewCard}
+                disabled={isIssuing || issueForm.pin.length < 4}
+                className="w-full mt-10 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-black py-5 rounded-2xl transition-all shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-3 text-lg"
+              >
+                {isIssuing ? <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Issue My Neural Card"}
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
