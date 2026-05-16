@@ -1,3 +1,4 @@
+# Force fresh build: 2026-05-16-v1
 [build]
   base = "ai-banking"
   command = "npm run build"

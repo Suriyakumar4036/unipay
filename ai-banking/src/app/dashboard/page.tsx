@@ -90,7 +90,7 @@ export default function Dashboard() {
   const [topUpAmount, setTopUpAmount] = useState("");
   const [topUpCurrency, setTopUpCurrency] = useState("INR");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentStep, setPaymentStep] = useState<"amount" | "methods" | "cards" | "success">("amount");
+  const [paymentStep, setPaymentStep] = useState<"form" | "cards" | "success">("form");
   const [selectedCard, setSelectedCard] = useState<any>(null);
   const [savedCards, setSavedCards] = useState<any[]>([]);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
@@ -104,13 +104,8 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       const walletsData = await fetchWithAuth("/wallet/balance");
-      const localDelta: Record<string, number> = JSON.parse(safeStorage.getItem("unipay_delta") || "{}");
-      const merged = walletsData.map((w: any) => ({
-        ...w,
-        balance: (parseFloat(w.balance) + (localDelta[w.currency] || 0)).toFixed(2)
-      }));
-      setWallets(merged);
-      safeStorage.setItem("unipay_wallets", JSON.stringify(merged));
+      setWallets(walletsData);
+      safeStorage.setItem("unipay_wallets", JSON.stringify(walletsData));
 
       const txData = await fetchWithAuth("/transactions");
       setTransactions(txData);
@@ -127,14 +122,11 @@ export default function Dashboard() {
         if (parsedWallets.length > 0) {
           setWallets(parsedWallets);
         } else {
-          const demo = [
+          setWallets([
             { currency: "INR", balance: "50000.00" },
             { currency: "USD", balance: "1000.00" },
             { currency: "EUR", balance: "500.00" },
-            { currency: "GBP", balance: "400.00" },
-          ];
-          setWallets(demo);
-          safeStorage.setItem("unipay_wallets", JSON.stringify(demo));
+          ]);
         }
       } catch (_) {
          setWallets([{ currency: "INR", balance: "50000.00" }]);
@@ -146,12 +138,10 @@ export default function Dashboard() {
         if (parsedCards.length > 0) {
           setSavedCards(parsedCards);
         } else {
-          const demoCards = [
+          setSavedCards([
             { id: "demo-1", cardType: "DEBIT CARD", network: "VISA", cardNumber: "4932530646388336", expiryDate: "07/30" },
             { id: "demo-2", cardType: "CREDIT CARD", network: "MASTERCARD", cardNumber: "5588165001341432", expiryDate: "03/29" }
-          ];
-          setSavedCards(demoCards);
-          safeStorage.setItem("unipay_cards", JSON.stringify(demoCards));
+          ]);
         }
       } catch (_) {
         setSavedCards([]);
@@ -160,26 +150,24 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const gId = safeStorage.getItem("globalId") || "";
-    setGlobalId(gId);
-    const cached = safeStorage.getItem("unipay_wallets");
-    if (cached) {
-      try { setWallets(JSON.parse(cached)); } catch (_) {}
-    }
+    setGlobalId(safeStorage.getItem("globalId") || "");
     fetchDashboardData();
   }, [router]);
 
   const handleFinalPayment = async () => {
+    if (!selectedCard) {
+      showToast("Please select a virtual card.", "error");
+      return;
+    }
+    
     setIsProcessing(true);
     const amount = parseFloat(topUpAmount);
 
     try {
       if (isDemoMode) {
         await new Promise(resolve => setTimeout(resolve, 1500));
-        const delta: Record<string, number> = JSON.parse(safeStorage.getItem("unipay_delta") || "{}");
-        delta[topUpCurrency] = (delta[topUpCurrency] || 0) + amount;
-        safeStorage.setItem("unipay_delta", JSON.stringify(delta));
-        await fetchDashboardData();
+        // Update local state for demo
+        setWallets(prev => prev.map(w => w.currency === topUpCurrency ? { ...w, balance: (parseFloat(w.balance) + amount).toFixed(2) } : w));
       } else {
         await fetchWithAuth("/api/payments/verify-payment", {
           method: 'POST',
@@ -195,7 +183,6 @@ export default function Dashboard() {
       }
       setPaymentStep("success");
     } catch (err) {
-      console.error(err);
       showToast("Payment failed. Please try again.", "error");
     } finally {
       setIsProcessing(false);
@@ -247,16 +234,15 @@ export default function Dashboard() {
           <div className="flex flex-wrap gap-3 w-full md:w-auto">
             <button 
               onClick={() => {
-                setPaymentStep("amount");
+                setPaymentStep("form");
                 setShowTopUp(true);
               }}
-              className="flex-1 md:flex-none bg-green-500/10 hover:bg-green-500/20 text-green-400 px-4 md:px-6 py-2 rounded-xl font-bold transition-colors text-sm md:text-base border border-green-500/20"
+              className="flex-1 md:flex-none bg-green-500/10 hover:bg-green-500/20 text-green-400 px-4 md:px-6 py-2 rounded-xl font-bold transition-colors text-sm md:text-base border border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)] hover:shadow-[0_0_20px_rgba(34,197,94,0.2)]"
             >
               + Add Funds
             </button>
             <Link href="/send" className="flex-1 md:flex-none">
-
-              <button className="w-full bg-indigo-500 hover:bg-indigo-600 text-white px-4 md:px-6 py-2 rounded-xl font-bold transition-colors text-sm md:text-base">
+              <button className="w-full bg-indigo-500 hover:bg-indigo-600 text-white px-4 md:px-6 py-2 rounded-xl font-bold transition-colors text-sm md:text-base shadow-lg shadow-indigo-500/20">
                 Send Money
               </button>
             </Link>
@@ -270,7 +256,6 @@ export default function Dashboard() {
                 AI Insights
               </button>
             </Link>
-
             <button onClick={() => { safeStorage.clear(); sessionStorage.clear(); router.push("/login"); }} className="text-zinc-500 hover:text-white px-2 md:px-4 text-xs md:text-sm">
               Logout
             </button>
@@ -323,14 +308,11 @@ export default function Dashboard() {
                         </div>
                         <div>
                           <p className="text-white font-bold">{isSender ? `To ${tx?.receiver?.name}` : `From ${tx?.sender?.name}`}</p>
-                          <p className="text-zinc-500 text-xs mt-1">{new Date(tx.timestamp).toLocaleDateString()} • {new Date(tx.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                          <p className="text-zinc-500 text-xs mt-1">{new Date(tx.timestamp).toLocaleDateString()}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className={`font-black text-lg ${isSender ? 'text-white' : 'text-green-400'}`}>
-                          {isSender ? '-' : '+'}{isSender ? tx.amountSent : tx.amountReceived} {isSender ? tx.senderCurrency : tx.receiverCurrency}
-                        </p>
-                        <p className="text-zinc-500 text-[10px] mt-1 font-bold uppercase tracking-widest">{tx.status}</p>
+                      <div className="text-right font-black text-lg text-white">
+                        {isSender ? '-' : '+'}{isSender ? tx.amountSent : tx.amountReceived} {isSender ? tx.senderCurrency : tx.receiverCurrency}
                       </div>
                     </motion.div>
                   )
@@ -344,133 +326,100 @@ export default function Dashboard() {
       {/* Add Funds Modal */}
       <AnimatePresence>
         {showTopUp && (
-
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 overflow-hidden">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowTopUp(false)}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
             />
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.9, y: 50 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="glass w-full max-w-md rounded-[2.5rem] p-8 md:p-10 relative z-10"
+              exit={{ opacity: 0, scale: 0.9, y: 50 }}
+              className="glass w-full max-w-md rounded-[2.5rem] p-8 md:p-10 relative z-10 border border-white/10"
             >
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-2xl font-black text-white font-outfit">Add Funds</h3>
-                <button 
-                  onClick={() => setShowTopUp(false)}
-                  className="p-2 hover:bg-white/10 rounded-full transition-colors text-zinc-400 hover:text-white"
-                >
+                <button onClick={() => setShowTopUp(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-zinc-400 hover:text-white">
                   <X />
                 </button>
               </div>
 
-              <div className="min-h-[300px] flex flex-col justify-center">
+              <div className="min-h-[400px]">
                 
-                {paymentStep === "amount" && (
-                  <motion.div 
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="space-y-6"
-                  >
+                {paymentStep === "form" && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
                     <div>
-                      <label className="block text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-2">Enter Amount</label>
+                      <label className="block text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-3">1. Enter Amount</label>
                       <input 
                         type="number"
                         value={topUpAmount}
                         onChange={(e) => setTopUpAmount(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-3xl font-black focus:outline-none focus:border-indigo-500 transition-colors"
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 text-white text-4xl font-black focus:outline-none focus:border-indigo-500 transition-all text-center"
                         placeholder="0.00"
                         autoFocus
                       />
+                      <div className="grid grid-cols-2 gap-3 mt-4">
+                        <button onClick={() => setTopUpCurrency("INR")} className={`p-3 rounded-xl border text-xs font-bold transition-all ${topUpCurrency === "INR" ? "bg-indigo-500 border-indigo-500 text-white" : "bg-white/5 border-white/10 text-zinc-500"}`}>INR (₹)</button>
+                        <button onClick={() => setTopUpCurrency("USD")} className={`p-3 rounded-xl border text-xs font-bold transition-all ${topUpCurrency === "USD" ? "bg-indigo-500 border-indigo-500 text-white" : "bg-white/5 border-white/10 text-zinc-500"}`}>USD ($)</button>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                       <button onClick={() => setTopUpCurrency("INR")} className={`p-4 rounded-2xl border transition-all font-bold ${topUpCurrency === "INR" ? "bg-indigo-500/20 border-indigo-500 text-white" : "bg-white/5 border-white/10 text-zinc-500"}`}>INR (₹)</button>
-                       <button onClick={() => setTopUpCurrency("USD")} className={`p-4 rounded-2xl border transition-all font-bold ${topUpCurrency === "USD" ? "bg-indigo-500/20 border-indigo-500 text-white" : "bg-white/5 border-white/10 text-zinc-500"}`}>USD ($)</button>
+                    <div>
+                      <label className="block text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-3">2. Select Payment Method</label>
+                      <button 
+                        disabled={!topUpAmount || parseFloat(topUpAmount) <= 0}
+                        onClick={() => setPaymentStep("cards")}
+                        className="w-full glass p-6 rounded-2xl border border-white/10 hover:border-indigo-500/50 transition-all flex items-center justify-between group disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                             <CreditCard />
+                          </div>
+                          <div className="text-left">
+                            <p className="text-white font-bold">Debit / Credit Card</p>
+                            <p className="text-zinc-500 text-[10px]">Pop-up Virtual Cards</p>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-zinc-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                      </button>
+
+                      <button 
+                        disabled={true}
+                        className="w-full glass p-6 rounded-2xl border border-white/10 mt-3 opacity-30 cursor-not-allowed flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center text-green-400">
+                             <Activity />
+                          </div>
+                          <div className="text-left">
+                            <p className="text-white font-bold">UPI / QR Code</p>
+                            <p className="text-zinc-500 text-[10px]">Instant Transfer</p>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-zinc-600" />
+                      </button>
                     </div>
-
-                    <button 
-                      disabled={!topUpAmount || parseFloat(topUpAmount) <= 0}
-                      onClick={() => setPaymentStep("methods")}
-                      className="w-full bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
-                    >
-                      Continue <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </motion.div>
-                )}
-
-                {paymentStep === "methods" && (
-                  <motion.div 
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="space-y-4"
-                  >
-                    <button onClick={() => setPaymentStep("amount")} className="text-zinc-500 hover:text-white flex items-center gap-2 text-xs font-bold mb-4">
-                      <ArrowLeft className="w-3 h-3" /> Back to Amount
-                    </button>
-                    
-                    <p className="text-zinc-400 text-[10px] font-black uppercase tracking-widest mb-4">Select Payment Method</p>
-                    
-                    <button 
-                      onClick={() => setPaymentStep("cards")}
-                      className="w-full glass p-5 rounded-2xl border border-white/10 hover:border-indigo-500/50 transition-all flex items-center justify-between group"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400">
-                           <CreditCard />
-                        </div>
-                        <div className="text-left">
-                          <p className="text-white font-bold">Debit / Credit Card</p>
-                          <p className="text-zinc-500 text-[10px]">Use your Virtual Cards</p>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-zinc-600 group-hover:text-white" />
-                    </button>
-
-                    <button 
-                      onClick={() => showToast("UPI Payment feature coming soon!", "error")}
-                      className="w-full glass p-5 rounded-2xl border border-white/10 hover:border-green-500/50 transition-all flex items-center justify-between group opacity-60"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center text-green-400">
-                           <Activity />
-                        </div>
-                        <div className="text-left">
-                          <p className="text-white font-bold">UPI / QR Code</p>
-                          <p className="text-zinc-500 text-[10px]">Scan and pay instantly</p>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-zinc-600" />
-                    </button>
                   </motion.div>
                 )}
 
                 {paymentStep === "cards" && (
-                  <motion.div 
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="space-y-6"
-                  >
-                    <button onClick={() => setPaymentStep("methods")} className="text-zinc-500 hover:text-white flex items-center gap-2 text-xs font-bold mb-4">
-                      <ArrowLeft className="w-3 h-3" /> Back to Methods
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                    <button onClick={() => setPaymentStep("form")} className="text-zinc-500 hover:text-white flex items-center gap-2 text-xs font-bold mb-4 group transition-colors">
+                      <ArrowLeft className="w-3 h-3 group-hover:-translate-x-1 transition-transform" /> Change Amount ({topUpAmount})
                     </button>
                     
-                    <p className="text-zinc-400 text-[10px] font-black uppercase tracking-widest">Select Virtual Card</p>
+                    <div className="text-center mb-8">
+                       <h4 className="text-indigo-400 text-sm font-black uppercase tracking-[0.3em] mb-1">Select Card</h4>
+                       <p className="text-zinc-500 text-[10px] font-bold">Choose a virtual card to settle payment</p>
+                    </div>
                     
-                    <div className="flex gap-3 overflow-x-auto pb-4 pt-2 custom-scrollbar min-h-[140px] items-center">
+                    <div className="flex gap-4 overflow-x-auto pb-6 pt-2 custom-scrollbar min-h-[160px] items-center px-2">
                       {savedCards.length > 0 ? (
                         savedCards.map(card => (
-                          <MiniCard 
-                            key={card.id} 
-                            card={card} 
-                            isSelected={selectedCard?.id === card.id}
-                            onClick={() => setSelectedCard(card)}
-                          />
+                          <MiniCard key={card.id} card={card} isSelected={selectedCard?.id === card.id} onClick={() => setSelectedCard(card)} />
                         ))
                       ) : (
                         <div className="w-full text-center py-8">
@@ -483,44 +432,41 @@ export default function Dashboard() {
                     <button 
                       disabled={!selectedCard || isProcessing}
                       onClick={handleFinalPayment}
-                      className="w-full bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
+                      className="w-full bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-black py-5 rounded-2xl transition-all shadow-[0_10px_30px_rgba(99,102,241,0.3)] flex items-center justify-center gap-3 text-lg"
                     >
                       {isProcessing ? (
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
                       ) : (
-                        <>Pay {topUpAmount} {topUpCurrency} with Card</>
+                        <>Confirm Payment <CheckCircle2 className="w-5 h-5" /></>
                       )}
                     </button>
                   </motion.div>
                 )}
 
                 {paymentStep === "success" && (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="text-center space-y-6 py-8"
-                  >
-                    <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                       <CheckCircle2 className="w-12 h-12 text-green-400" />
+                  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-8 py-10">
+                    <div className="relative inline-block">
+                       <div className="w-24 h-24 bg-green-500/20 rounded-full flex items-center justify-center mx-auto relative z-10">
+                          <CheckCircle2 className="w-14 h-14 text-green-400" />
+                       </div>
+                       <motion.div initial={{ scale: 0 }} animate={{ scale: 1.5, opacity: 0 }} transition={{ duration: 1, repeat: Infinity }} className="absolute inset-0 bg-green-500/10 rounded-full" />
                     </div>
                     <div>
-                      <h4 className="text-2xl font-black text-white mb-2">Payment Successful!</h4>
-                      <p className="text-zinc-500 text-sm">Your wallet has been updated with {topUpAmount} {topUpCurrency}.</p>
+                      <h4 className="text-3xl font-black text-white mb-3">Funds Added!</h4>
+                      <p className="text-zinc-500 text-sm leading-relaxed">
+                        Successfully added <span className="text-white font-bold">{topUpAmount} {topUpCurrency}</span> to your wallet using Card {selectedCard?.cardNumber?.slice(-4)}.
+                      </p>
                     </div>
-                    <button 
-                      onClick={() => setShowTopUp(false)}
-                      className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-2xl transition-all"
-                    >
-                      Back to Dashboard
+                    <button onClick={() => setShowTopUp(false)} className="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-2xl border border-white/10 transition-all">
+                      Done
                     </button>
                   </motion.div>
                 )}
               </div>
 
-              <div className="mt-8 p-4 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 text-[10px] text-indigo-300 leading-relaxed text-center">
-                Secured by Neural Encryption. Funds settled instantly.
+              <div className="mt-8 pt-8 border-t border-white/5 text-[9px] text-zinc-600 text-center uppercase tracking-widest font-bold">
+                Secured by UniPay Neural Network • 256-bit Encryption
               </div>
-
             </motion.div>
           </div>
         )}
