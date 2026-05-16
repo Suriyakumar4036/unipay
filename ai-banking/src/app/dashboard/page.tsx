@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchWithAuth } from "@/lib/api";
-import { Wallet, ArrowUpRight, ArrowDownRight, Activity, X, Calendar, Clock, DollarSign, User as UserIcon, Hash, Send, CreditCard } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownRight, Activity, X, Calendar, Clock, DollarSign, User as UserIcon, Hash, Send, CreditCard, ArrowLeft } from "lucide-react";
 
 
 
@@ -25,6 +25,8 @@ export default function Dashboard() {
   const [topUpAmount, setTopUpAmount] = useState("");
   const [topUpCurrency, setTopUpCurrency] = useState("INR");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentStep, setPaymentStep] = useState<"options" | "cards">("options");
+  const [savedCards, setSavedCards] = useState<any[]>([]);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
@@ -57,6 +59,9 @@ export default function Dashboard() {
 
         const txData = await fetchWithAuth("/transactions");
         setTransactions(txData);
+
+        const cardsData = await fetchWithAuth("/cards");
+        setSavedCards(cardsData);
       } catch (err) {
         const msg = (err as Error).message;
         if (msg.includes("JWT") || msg.includes("Token") || msg.includes("401")) {
@@ -74,6 +79,11 @@ export default function Dashboard() {
             setWallets(demo);
             localStorage.setItem("unipay_wallets", JSON.stringify(demo));
           }
+          // Set demo cards if offline
+          setSavedCards([
+            { id: "demo-1", cardType: "DEBIT CARD", network: "VISA", cardNumber: "4932530646388336", expiryDate: "07/30" },
+            { id: "demo-2", cardType: "CREDIT CARD", network: "MASTERCARD", cardNumber: "5588165001341432", expiryDate: "03/29" }
+          ]);
         }
       }
     };
@@ -110,6 +120,7 @@ export default function Dashboard() {
     });
 
     setShowTopUp(false);
+    setPaymentStep("options");
     setTopUpAmount("");
     setIsProcessing(false);
     showToast(`✅ ${amount.toFixed(2)} ${topUpCurrency} added to your wallet!`);
@@ -369,7 +380,10 @@ export default function Dashboard() {
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-2xl font-black text-white font-outfit">Add Funds</h3>
                 <button 
-                  onClick={() => setShowTopUp(false)}
+                  onClick={() => {
+                    setShowTopUp(false);
+                    setPaymentStep("options");
+                  }}
                   className="p-2 hover:bg-white/10 rounded-full transition-colors text-zinc-400 hover:text-white"
                 >
                   <X />
@@ -377,92 +391,138 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-6">
-                <div>
-                  <label className="block text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-2">Amount (to add)</label>
-                  <input 
-                    type="number"
-                    value={topUpAmount}
-                    onChange={(e) => setTopUpAmount(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-2xl font-black focus:outline-none focus:border-indigo-500 transition-colors"
-                    placeholder="0.00"
-                  />
-                </div>
+                
+                {paymentStep === "options" ? (
+                  <>
+                    <div>
+                      <label className="block text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-2">Amount (to add)</label>
+                      <input 
+                        type="number"
+                        value={topUpAmount}
+                        onChange={(e) => setTopUpAmount(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-2xl font-black focus:outline-none focus:border-indigo-500 transition-colors"
+                        placeholder="0.00"
+                      />
+                    </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                   <button 
-                     onClick={() => setTopUpCurrency("INR")}
-                     className={`p-4 rounded-2xl border transition-all text-xs font-bold ${topUpCurrency === "INR" ? "bg-indigo-500/20 border-indigo-500 text-white" : "bg-white/5 border-white/10 text-zinc-500 hover:border-white/20"}`}
-                   >
-                     INR (₹)
-                   </button>
-                   <button 
-                     onClick={() => setTopUpCurrency("USD")}
-                     className={`p-4 rounded-2xl border transition-all text-xs font-bold ${topUpCurrency === "USD" ? "bg-indigo-500/20 border-indigo-500 text-white" : "bg-white/5 border-white/10 text-zinc-500 hover:border-white/20"}`}
-                   >
-                     USD ($)
-                   </button>
-                </div>
+                    <div className="grid grid-cols-2 gap-4">
+                       <button 
+                         onClick={() => setTopUpCurrency("INR")}
+                         className={`p-4 rounded-2xl border transition-all text-xs font-bold ${topUpCurrency === "INR" ? "bg-indigo-500/20 border-indigo-500 text-white" : "bg-white/5 border-white/10 text-zinc-500 hover:border-white/20"}`}
+                       >
+                         INR (₹)
+                       </button>
+                       <button 
+                         onClick={() => setTopUpCurrency("USD")}
+                         className={`p-4 rounded-2xl border transition-all text-xs font-bold ${topUpCurrency === "USD" ? "bg-indigo-500/20 border-indigo-500 text-white" : "bg-white/5 border-white/10 text-zinc-500 hover:border-white/20"}`}
+                       >
+                         USD ($)
+                       </button>
+                    </div>
 
-                <div className="space-y-3">
-                  <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Select Payment Method</p>
-                  
-                  {/* Card Option */}
-                  <button 
-                    onClick={handleRazorpayPayment}
-                    disabled={isProcessing}
-                    className={`w-full glass border p-4 rounded-2xl transition-all flex items-center justify-between group ${
-                      isProcessing ? 'opacity-50 cursor-not-allowed border-indigo-500/50' : 'hover:bg-white/10 border-white/10'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center group-hover:bg-indigo-500/30 transition-colors">
-                        {isProcessing ? (
-                          <div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <CreditCard className="w-5 h-5 text-indigo-400" />
-                        )}
-                      </div>
-                      <div className="text-left">
-                        <p className="text-white font-bold text-sm">{isProcessing ? "Processing Payment..." : "Debit / Credit Card"}</p>
-                        <p className="text-zinc-500 text-[10px]">{isProcessing ? "Please wait securely..." : "Visa, Mastercard, RuPay"}</p>
+                    <div className="space-y-3">
+                      <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Select Payment Method</p>
+                      
+                      {/* Card Option */}
+                      <button 
+                        onClick={() => {
+                          if (!topUpAmount || parseFloat(topUpAmount) <= 0) {
+                            showToast("Please enter a valid amount.", "error");
+                            return;
+                          }
+                          setPaymentStep("cards");
+                        }}
+                        className="w-full glass hover:bg-white/10 border border-white/10 p-4 rounded-2xl transition-all flex items-center justify-between group"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center group-hover:bg-indigo-500/30 transition-colors">
+                            <CreditCard className="w-5 h-5 text-indigo-400" />
+                          </div>
+                          <div className="text-left">
+                            <p className="text-white font-bold text-sm">Debit / Credit Card</p>
+                            <p className="text-zinc-500 text-[10px]">Visa, Mastercard, RuPay</p>
+                          </div>
+                        </div>
+                        <ArrowUpRight className="w-4 h-4 text-zinc-600 group-hover:text-white transition-colors" />
+                      </button>
+
+                      {/* QR Code Option */}
+                      <div className="relative overflow-hidden group">
+                        <button 
+                          className="w-full glass hover:bg-white/10 border border-white/10 p-4 rounded-2xl transition-all flex items-center justify-between"
+                          onClick={() => {
+                            const qrEl = document.getElementById('qr-display');
+                            if (qrEl) qrEl.classList.toggle('hidden');
+                          }}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
+                              <Activity className="w-5 h-5 text-green-400" />
+                            </div>
+                            <div className="text-left">
+                              <p className="text-white font-bold text-sm">QR Code / UPI</p>
+                              <p className="text-zinc-500 text-[10px]">Instant Scan & Pay</p>
+                            </div>
+                          </div>
+                          <ArrowUpRight className="w-4 h-4 text-zinc-600" />
+                        </button>
+                        
+                        <div id="qr-display" className="hidden mt-4 p-6 glass rounded-3xl border border-white/5 flex flex-col items-center">
+                           <img 
+                             src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=unipay@bank%26pn=UniPay%26am=${topUpAmount}%26cu=INR`} 
+                             alt="Payment QR"
+                             className="w-32 h-32 rounded-xl mb-4 bg-white p-2"
+                           />
+                           <p className="text-white font-bold text-center mb-1">Scan to pay {topUpAmount || "0.00"} {topUpCurrency}</p>
+                           <p className="text-zinc-500 text-[10px] text-center">Open any UPI app to scan and pay instantly.</p>
+                        </div>
                       </div>
                     </div>
-                    {!isProcessing && <ArrowUpRight className="w-4 h-4 text-zinc-600 group-hover:text-white transition-colors" />}
-                  </button>
-
-                  {/* QR Code Option */}
-                  <div className="relative overflow-hidden group">
-                    <button 
-                      className="w-full glass hover:bg-white/10 border border-white/10 p-4 rounded-2xl transition-all flex items-center justify-between"
-                      onClick={() => {
-                        // Toggle QR display (simulated)
-                        const qrEl = document.getElementById('qr-display');
-                        if (qrEl) qrEl.classList.toggle('hidden');
-                      }}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
-                          <Activity className="w-5 h-5 text-green-400" />
-                        </div>
-                        <div className="text-left">
-                          <p className="text-white font-bold text-sm">QR Code / UPI</p>
-                          <p className="text-zinc-500 text-[10px]">Instant Scan & Pay</p>
-                        </div>
-                      </div>
-                      <ArrowUpRight className="w-4 h-4 text-zinc-600" />
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => setPaymentStep("options")} className="text-zinc-400 hover:text-white flex items-center gap-2 text-sm font-bold transition-colors mb-2">
+                      <ArrowLeft className="w-4 h-4" /> Back to Amount
                     </button>
-                    
-                    <div id="qr-display" className="hidden mt-4 p-6 glass rounded-3xl border border-white/5 flex flex-col items-center">
-                       <img 
-                         src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=unipay@bank%26pn=UniPay%26am=${topUpAmount}%26cu=INR`} 
-                         alt="Payment QR"
-                         className="w-32 h-32 rounded-xl mb-4 bg-white p-2"
-                       />
-                       <p className="text-zinc-400 text-[10px] font-bold text-center">Scan with any UPI App to pay</p>
-                       <p className="text-white text-xs font-black mt-1">₹{topUpAmount || "0"}</p>
-                    </div>
-                  </div>
-                </div>
+                    <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-4">Select a Card to Pay {topUpAmount} {topUpCurrency}</p>
+                    {savedCards.length === 0 ? (
+                      <div className="p-6 bg-white/5 border border-white/10 rounded-2xl text-center text-zinc-400 text-sm">
+                        No active cards found. <br />
+                        <Link href="/cards" className="text-indigo-400 font-bold mt-2 inline-block">Create a Virtual Card</Link>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                        {savedCards.map(card => (
+                          <button
+                            key={card.id}
+                            onClick={handleRazorpayPayment}
+                            disabled={isProcessing}
+                            className={`w-full glass border p-4 rounded-2xl transition-all flex items-center justify-between group ${
+                              isProcessing ? 'opacity-50 cursor-not-allowed border-indigo-500/50' : 'hover:bg-white/10 border-white/10 hover:border-indigo-500/30'
+                            }`}
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded flex items-center justify-center shadow-md">
+                                {isProcessing ? (
+                                  <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                  <span className="text-white text-[8px] font-black uppercase">{card.network}</span>
+                                )}
+                              </div>
+                              <div className="text-left">
+                                <p className="text-white font-bold text-sm flex items-center gap-2">
+                                  {card.cardType} •••• {card.cardNumber?.slice(-4) || "****"}
+                                </p>
+                                <p className="text-zinc-500 text-[10px] uppercase">Expires {card.expiryDate}</p>
+                              </div>
+                            </div>
+                            {!isProcessing && <ArrowUpRight className="w-4 h-4 text-indigo-400 group-hover:text-white transition-colors" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
 
                 <div className="p-4 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 text-[10px] text-indigo-300 leading-relaxed text-center">
                   Payments are secure and encrypted. <br />
