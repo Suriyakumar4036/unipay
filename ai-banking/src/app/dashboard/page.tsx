@@ -24,6 +24,12 @@ export default function Dashboard() {
   const [showTopUp, setShowTopUp] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState("");
   const [topUpCurrency, setTopUpCurrency] = useState("INR");
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+
+  const showToast = (msg: string, type: "success" | "error" = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   useEffect(() => {
     const gId = localStorage.getItem("globalId") || "";
@@ -38,8 +44,15 @@ export default function Dashboard() {
     const fetchDashboardData = async () => {
       try {
         const walletsData = await fetchWithAuth("/wallet/balance");
-        setWallets(walletsData);
-        localStorage.setItem("unipay_wallets", JSON.stringify(walletsData));
+
+        // Merge backend data with any local adjustments stored
+        const localDelta: Record<string, number> = JSON.parse(localStorage.getItem("unipay_delta") || "{}");
+        const merged = walletsData.map((w: any) => ({
+          ...w,
+          balance: (parseFloat(w.balance) + (localDelta[w.currency] || 0)).toFixed(2)
+        }));
+        setWallets(merged);
+        localStorage.setItem("unipay_wallets", JSON.stringify(merged));
 
         const txData = await fetchWithAuth("/transactions");
         setTransactions(txData);
@@ -48,7 +61,8 @@ export default function Dashboard() {
         if (msg.includes("JWT") || msg.includes("Token") || msg.includes("401")) {
           router.push("/login");
         } else {
-          // Backend unreachable — show demo wallets if nothing cached
+          // Backend unreachable — use cached wallets or demo data
+          const cached = localStorage.getItem("unipay_wallets");
           if (!cached) {
             const demo = [
               { currency: "INR", balance: "50000.00" },
@@ -67,13 +81,18 @@ export default function Dashboard() {
 
   const handleRazorpayPayment = async () => {
     if (!topUpAmount || parseFloat(topUpAmount) <= 0) {
-      alert("Please enter a valid amount.");
+      showToast("Please enter a valid amount.", "error");
       return;
     }
 
     const amount = parseFloat(topUpAmount);
 
     await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Track delta so backend refresh preserves local payments
+    const delta: Record<string, number> = JSON.parse(localStorage.getItem("unipay_delta") || "{}");
+    delta[topUpCurrency] = (delta[topUpCurrency] || 0) + amount;
+    localStorage.setItem("unipay_delta", JSON.stringify(delta));
 
     setWallets((prev: any[]) => {
       const exists = prev.find((w: any) => w.currency === topUpCurrency);
@@ -84,21 +103,39 @@ export default function Dashboard() {
               : w
           )
         : [...prev, { currency: topUpCurrency, balance: amount.toFixed(2) }];
-
-      // Persist updated wallets to localStorage so balance survives refresh
       localStorage.setItem("unipay_wallets", JSON.stringify(updated));
       return updated;
     });
 
     setShowTopUp(false);
     setTopUpAmount("");
-    alert(`✅ Payment Successful! ${amount.toFixed(2)} ${topUpCurrency} added to your wallet.`);
+    showToast(`✅ ${amount.toFixed(2)} ${topUpCurrency} added to your wallet!`);
   };
 
 
   return (
     <main className="min-h-screen p-4 md:p-8 bg-black">
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -60 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -60 }}
+            className={`fixed top-6 left-1/2 -translate-x-1/2 z-[200] px-6 py-4 rounded-2xl shadow-2xl font-bold text-sm flex items-center gap-3 ${
+              toast.type === "success"
+                ? "bg-green-500/20 border border-green-500/40 text-green-300"
+                : "bg-red-500/20 border border-red-500/40 text-red-300"
+            }`}
+          >
+            {toast.msg}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="max-w-6xl mx-auto">
+
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 md:mb-12 border-b border-white/10 pb-6 md:pb-8">
           <div>
             <h1 className="text-2xl md:text-3xl font-black text-white font-outfit mb-2">Neural Portfolio</h1>
