@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchWithAuth } from "@/lib/api";
-import { Wallet, ArrowUpRight, ArrowDownRight, Activity, X, Calendar, Clock, DollarSign, User as UserIcon, Hash, Send, CreditCard, ArrowLeft, ShieldCheck, Zap, ChevronRight, CheckCircle2, Lock } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownRight, Activity, X, Calendar, Clock, DollarSign, User as UserIcon, Hash, Send, CreditCard, ArrowLeft, ShieldCheck, Zap, ChevronRight, CheckCircle2, Lock, Globe } from "lucide-react";
 
 
 
@@ -96,6 +96,7 @@ export default function Dashboard() {
   const [savedCards, setSavedCards] = useState<any[]>([]);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
+  const [showOtherCurrencies, setShowOtherCurrencies] = useState(false);
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type });
@@ -131,6 +132,9 @@ export default function Dashboard() {
             { currency: "INR", balance: "0.00" },
             { currency: "USD", balance: "0.00" },
             { currency: "EUR", balance: "0.00" },
+            { currency: "GBP", balance: "0.00" },
+            { currency: "JPY", balance: "0.00" },
+            { currency: "AUD", balance: "0.00" }
           ]);
         }
       } catch (_) {
@@ -173,7 +177,6 @@ export default function Dashboard() {
         await new Promise(resolve => setTimeout(resolve, 1500));
         setWallets(prev => prev.map(w => w.currency === topUpCurrency ? { ...w, balance: (parseFloat(w.balance) + amount).toFixed(2) } : w));
       } else {
-        // In a real app, we would verify the password here too
         await fetchWithAuth("/api/payments/verify-payment", {
           method: 'POST',
           body: JSON.stringify({
@@ -241,6 +244,7 @@ export default function Dashboard() {
               onClick={() => {
                 setPaymentStep("form");
                 setShowTopUp(true);
+                setShowOtherCurrencies(false);
               }}
               className="flex-1 md:flex-none bg-green-500/10 hover:bg-green-500/20 text-green-400 px-4 md:px-6 py-2 rounded-xl font-bold transition-colors text-sm md:text-base border border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)] hover:shadow-[0_0_20px_rgba(34,197,94,0.2)]"
             >
@@ -449,10 +453,35 @@ export default function Dashboard() {
                         placeholder="0.00"
                         autoFocus
                       />
-                      <div className="grid grid-cols-2 gap-3 mt-4">
-                        <button onClick={() => setTopUpCurrency("INR")} className={`p-3 rounded-xl border text-xs font-bold transition-all ${topUpCurrency === "INR" ? "bg-indigo-500 border-indigo-500 text-white" : "bg-white/5 border-white/10 text-zinc-500"}`}>INR (₹)</button>
-                        <button onClick={() => setTopUpCurrency("USD")} className={`p-3 rounded-xl border text-xs font-bold transition-all ${topUpCurrency === "USD" ? "bg-indigo-500 border-indigo-500 text-white" : "bg-white/5 border-white/10 text-zinc-500"}`}>USD ($)</button>
+                      
+                      <div className="grid grid-cols-3 gap-2 mt-4">
+                        <button onClick={() => { setTopUpCurrency("INR"); setShowOtherCurrencies(false); }} className={`p-3 rounded-xl border text-xs font-black transition-all ${topUpCurrency === "INR" ? "bg-indigo-500 border-indigo-500 text-white shadow-[0_5px_15px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10 text-zinc-500"}`}>INR (₹)</button>
+                        <button onClick={() => { setTopUpCurrency("USD"); setShowOtherCurrencies(false); }} className={`p-3 rounded-xl border text-xs font-black transition-all ${topUpCurrency === "USD" ? "bg-indigo-500 border-indigo-500 text-white shadow-[0_5px_15px_rgba(99,102,241,0.3)]" : "bg-white/5 border-white/10 text-zinc-500"}`}>USD ($)</button>
+                        <button onClick={() => setShowOtherCurrencies(!showOtherCurrencies)} className={`p-3 rounded-xl border text-xs font-black transition-all flex items-center justify-center gap-1 ${showOtherCurrencies ? "bg-indigo-500/20 border-indigo-500 text-indigo-400" : "bg-white/5 border-white/10 text-zinc-500"}`}>
+                           Others <Globe className="w-3 h-3" />
+                        </button>
                       </div>
+
+                      <AnimatePresence>
+                        {showOtherCurrencies && (
+                          <motion.div 
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="grid grid-cols-4 gap-2 mt-2 overflow-hidden"
+                          >
+                             {["EUR", "GBP", "JPY", "AUD"].map(curr => (
+                               <button 
+                                 key={curr}
+                                 onClick={() => { setTopUpCurrency(curr); }}
+                                 className={`p-2 rounded-lg border text-[10px] font-black transition-all ${topUpCurrency === curr ? "bg-indigo-500 border-indigo-500 text-white" : "bg-white/5 border-white/10 text-zinc-600"}`}
+                               >
+                                 {curr}
+                               </button>
+                             ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
 
                     <div>
@@ -496,7 +525,7 @@ export default function Dashboard() {
                 {paymentStep === "cards" && (
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                     <button onClick={() => setPaymentStep("form")} className="text-zinc-500 hover:text-white flex items-center gap-2 text-xs font-bold mb-4 group transition-colors">
-                      <ArrowLeft className="w-3 h-3 group-hover:-translate-x-1 transition-transform" /> Change Amount ({topUpAmount})
+                      <ArrowLeft className="w-3 h-3 group-hover:-translate-x-1 transition-transform" /> Change Amount ({topUpAmount} {topUpCurrency})
                     </button>
                     
                     <div className="text-center mb-8">
