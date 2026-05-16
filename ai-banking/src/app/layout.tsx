@@ -6,9 +6,10 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
 export const metadata: Metadata = {
-  title: "UNIPAY BANKING | AI Financial Intelligence",
-  description: "Experience the future of wealth management with Antigravity AI.",
+  title: "UNIPAY | Global AI Finance",
+  description: "Experience the next generation of global wealth with UniPay AI.",
 };
+
 
 export default function RootLayout({
   children,
