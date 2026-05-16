@@ -24,6 +24,7 @@ export default function Dashboard() {
   const [showTopUp, setShowTopUp] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState("");
   const [topUpCurrency, setTopUpCurrency] = useState("INR");
+  const [isProcessing, setIsProcessing] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
@@ -85,6 +86,7 @@ export default function Dashboard() {
       return;
     }
 
+    setIsProcessing(true);
     const amount = parseFloat(topUpAmount);
 
     await new Promise(resolve => setTimeout(resolve, 1500));
@@ -109,6 +111,7 @@ export default function Dashboard() {
 
     setShowTopUp(false);
     setTopUpAmount("");
+    setIsProcessing(false);
     showToast(`✅ ${amount.toFixed(2)} ${topUpCurrency} added to your wallet!`);
   };
 
@@ -406,18 +409,25 @@ export default function Dashboard() {
                   {/* Card Option */}
                   <button 
                     onClick={handleRazorpayPayment}
-                    className="w-full glass hover:bg-white/10 border border-white/10 p-4 rounded-2xl transition-all flex items-center justify-between group"
+                    disabled={isProcessing}
+                    className={`w-full glass border p-4 rounded-2xl transition-all flex items-center justify-between group ${
+                      isProcessing ? 'opacity-50 cursor-not-allowed border-indigo-500/50' : 'hover:bg-white/10 border-white/10'
+                    }`}
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center group-hover:bg-indigo-500/30 transition-colors">
-                        <CreditCard className="w-5 h-5 text-indigo-400" />
+                        {isProcessing ? (
+                          <div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <CreditCard className="w-5 h-5 text-indigo-400" />
+                        )}
                       </div>
                       <div className="text-left">
-                        <p className="text-white font-bold text-sm">Debit / Credit Card</p>
-                        <p className="text-zinc-500 text-[10px]">Visa, Mastercard, RuPay</p>
+                        <p className="text-white font-bold text-sm">{isProcessing ? "Processing Payment..." : "Debit / Credit Card"}</p>
+                        <p className="text-zinc-500 text-[10px]">{isProcessing ? "Please wait securely..." : "Visa, Mastercard, RuPay"}</p>
                       </div>
                     </div>
-                    <ArrowUpRight className="w-4 h-4 text-zinc-600 group-hover:text-white transition-colors" />
+                    {!isProcessing && <ArrowUpRight className="w-4 h-4 text-zinc-600 group-hover:text-white transition-colors" />}
                   </button>
 
                   {/* QR Code Option */}
