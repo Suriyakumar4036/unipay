@@ -93,7 +93,7 @@ public class AiService {
             return new AiChatResponse("AI engine returned empty response.");
         } catch (Exception e) {
             System.err.println("AI Service Error: " + e.getMessage());
-            return new AiChatResponse("Neural Engine (Simulated): " + request.getMessage() + "? That's a great question. As your AI assistant, I'm currently in secure offline mode, but I can tell you that your Nexus account is healthy and ready for global transfers!");
+            return new AiChatResponse("Neural Engine (Simulated): " + request.getMessage() + "? That's a great question. As your AI assistant, I'm currently in secure offline mode, but I can tell you that your UniPay account is healthy and ready for global transfers!");
         }
     }
 }

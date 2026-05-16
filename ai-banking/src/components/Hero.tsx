@@ -37,7 +37,7 @@ export default function Hero() {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="text-zinc-400 text-xl md:text-2xl mb-12 max-w-2xl mx-auto leading-relaxed"
         >
-          Nexus is the world's first AI-native banking platform designed for the elite. 
+          UniPay is the world's first AI-native banking platform designed for the elite. 
           Real-time intelligence for your wealth.
         </motion.p>
 

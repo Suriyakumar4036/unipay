@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
 export const metadata: Metadata = {
-  title: "NEXUS BANKING | AI Financial Intelligence",
+  title: "UNIPAY BANKING | AI Financial Intelligence",
   description: "Experience the future of wealth management with Antigravity AI.",
 };
 

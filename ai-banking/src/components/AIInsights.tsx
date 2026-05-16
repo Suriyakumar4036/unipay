@@ -78,7 +78,7 @@ export default function AIInsights() {
                 <div>
                   <div className="text-indigo-400 font-bold mb-6 flex items-center gap-2">
                     <div className="w-2 h-2 bg-indigo-500 rounded-full" />
-                    Nexus Analysis
+                    UniPay Analysis
                   </div>
                   <p className="text-white text-lg md:text-xl leading-relaxed font-medium italic">
                     "{insights[activeInsight].response}"

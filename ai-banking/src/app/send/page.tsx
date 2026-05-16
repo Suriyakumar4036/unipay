@@ -177,7 +177,7 @@ function SendMoneyContent() {
 
 export default function SendMoney() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-white font-bold">Loading Nexus Engine...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-white font-bold">Loading UniPay Engine...</div>}>
       <SendMoneyContent />
     </Suspense>
   );

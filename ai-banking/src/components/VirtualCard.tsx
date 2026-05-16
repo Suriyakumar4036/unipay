@@ -44,7 +44,7 @@ export default function VirtualCard({ number, expiry, cvv, name, type, network }
             <p className="text-[10px] font-black tracking-[0.2em] text-white/50 uppercase">{type} CARD</p>
             <div className="flex items-center gap-2">
               <Zap className="w-5 h-5 text-indigo-400 fill-indigo-400" />
-              <span className="text-white font-black italic tracking-tighter text-xl">NEXUS</span>
+              <span className="text-white font-black italic tracking-tighter text-xl">UNIPAY</span>
             </div>
           </div>
           <div className="text-right">

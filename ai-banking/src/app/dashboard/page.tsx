@@ -64,7 +64,7 @@ export default function Dashboard() {
         key: "rzp_test_placeholder", // This should be replaced with real key or fetched from backend
         amount: order.amount,
         currency: order.currency,
-        name: "Nexus Global Pay",
+        name: "UniPay Global Pay",
         description: "Wallet Top-up",
         order_id: order.id,
         handler: async function (response: any) {
