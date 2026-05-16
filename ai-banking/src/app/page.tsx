@@ -6,9 +6,15 @@ import Features from "@/components/Features";
 import AIInsights from "@/components/AIInsights";
 import { Menu } from "lucide-react";
 import Link from "next/link";
+import { useEffect } from "react";
 
 export default function Home() {
+  useEffect(() => {
+    document.title = "UNIPAY | AI Wealth Intelligence";
+  }, []);
+
   return (
+
     <main className="min-h-screen bg-white">
       <div className="mesh-bg" />
 

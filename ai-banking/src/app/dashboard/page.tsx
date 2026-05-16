@@ -10,7 +10,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function Dashboard() {
+  useEffect(() => {
+    document.title = "UNIPAY | Neural Portfolio";
+  }, []);
+
   const router = useRouter();
+
   const [wallets, setWallets] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [globalId, setGlobalId] = useState("");

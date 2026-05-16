@@ -1,13 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { fetchWithAuth } from "@/lib/api";
 
 import { useRouter } from "next/navigation";
 
 export default function Login() {
+  useEffect(() => {
+    document.title = "UNIPAY | Join the Elite";
+  }, []);
+
   const router = useRouter();
+
   const [isLogin, setIsLogin] = useState(true);
   const [globalId, setGlobalId] = useState("");
   const [password, setPassword] = useState("");
