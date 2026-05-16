@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchWithAuth } from "@/lib/api";
-import { Wallet, ArrowUpRight, ArrowDownRight, Activity, X, Calendar, Clock, DollarSign, User as UserIcon, Hash, Send } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownRight, Activity, X, Calendar, Clock, DollarSign, User as UserIcon, Hash, Send, CreditCard } from "lucide-react";
+
 
 
 import { useRouter } from "next/navigation";
@@ -313,9 +314,12 @@ export default function Dashboard() {
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
+
       {/* Top Up Modal */}
       <AnimatePresence>
         {showTopUp && (
+
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
             <motion.div 
               initial={{ opacity: 0 }}
