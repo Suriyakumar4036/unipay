@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { fetchWithAuth } from "@/lib/api";
-
+import { GoogleLogin } from "@react-oauth/google";
 import { useRouter } from "next/navigation";
 
 export default function Login() {
@@ -25,6 +25,25 @@ export default function Login() {
     localStorage.setItem("token", "demo-token");
     localStorage.setItem("globalId", "demo@unipay");
     router.push("/dashboard");
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    setError("");
+    setLoading(true);
+    try {
+      const response = await fetchWithAuth("/auth/google", {
+        method: "POST",
+        body: JSON.stringify({ token: credentialResponse.credential })
+      });
+
+      localStorage.setItem("token", response.token);
+      localStorage.setItem("globalId", response.globalId);
+      router.push("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Google Authentication failed.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -139,10 +158,25 @@ export default function Login() {
         </form>
 
         <div className="mt-8 text-center space-y-4">
+          <div className="relative py-2">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
+            <div className="relative flex justify-center text-[10px] uppercase tracking-widest font-black text-zinc-600"><span className="bg-black px-4 text-zinc-700">Fast Connect</span></div>
+          </div>
+
+          <div className="flex justify-center w-full">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError("Google Login failed.")}
+              theme="filled_black"
+              shape="pill"
+              width="320"
+            />
+          </div>
+
           <button 
             type="button"
             onClick={() => setIsLogin(!isLogin)}
-            className="text-zinc-500 hover:text-white transition-colors text-sm font-bold block w-full"
+            className="text-zinc-500 hover:text-white transition-colors text-sm font-bold block w-full mt-4"
           >
             {isLogin ? "Don't have a Global ID? Sign up" : "Already have a Global ID? Log in"}
           </button>
