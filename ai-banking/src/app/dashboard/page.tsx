@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchWithAuth } from "@/lib/api";
-import { Wallet, ArrowUpRight, ArrowDownRight, Activity, X, Calendar, Clock, DollarSign, User as UserIcon, Hash, Send, CreditCard, ArrowLeft } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownRight, Activity, X, Calendar, Clock, DollarSign, User as UserIcon, Hash, Send, CreditCard, ArrowLeft, ShieldCheck, Zap } from "lucide-react";
 
 
 
@@ -12,18 +12,67 @@ import Link from "next/link";
 
 
 const safeStorage = {
-  getItem: (key) => {
-    if (typeof window === 'undefined') return null;
-    try { return safeStorage.getItem(key); } catch (e) { return null; }
+  getItem: (key: string): string | null => {
+    if (typeof window === "undefined") return null;
+    try { return window.localStorage.getItem(key); } catch (e) { return null; }
   },
-  setItem: (key, value) => {
-    if (typeof window === 'undefined') return;
-    try { safeStorage.setItem(key, value); } catch (e) {}
+  setItem: (key: string, value: string): void => {
+    if (typeof window === "undefined") return;
+    try { window.localStorage.setItem(key, value); } catch (e) {}
   },
-  clear: () => {
-    if (typeof window === 'undefined') return;
-    try { safeStorage.clear(); } catch (e) {}
+  clear: (): void => {
+    if (typeof window === "undefined") return;
+    try { window.localStorage.clear(); } catch (e) {}
   }
+};
+
+const MiniCard = ({ card, isSelected, onClick }: { card: any; isSelected: boolean; onClick: () => void }) => {
+  const isVisa = card.network === "VISA";
+  return (
+    <motion.div
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={onClick}
+      className={`relative flex-shrink-0 w-48 h-28 rounded-2xl p-4 overflow-hidden cursor-pointer transition-all border-2 ${
+        isSelected ? "border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.4)]" : "border-white/10 hover:border-white/20"
+      }`}
+    >
+      <div className={`absolute inset-0 bg-gradient-to-br transition-all duration-500 ${
+        card.cardType === "CREDIT" 
+        ? "from-zinc-900 via-indigo-950 to-black" 
+        : "from-indigo-600 via-indigo-900 to-black"
+      }`} />
+      
+      <motion.div 
+        animate={{ x: ['-100%', '100%'] }}
+        transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12"
+      />
+
+      <div className="relative h-full flex flex-col justify-between">
+        <div className="flex justify-between items-start">
+          <Zap className={`w-3 h-3 transition-colors ${isSelected ? 'text-indigo-400 fill-indigo-400' : 'text-white/20'}`} />
+          {isVisa ? (
+            <span className="text-white font-black italic text-xs">VISA</span>
+          ) : (
+            <div className="flex -space-x-1.5">
+              <div className="w-3 h-3 rounded-full bg-rose-500/80" />
+              <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+            </div>
+          )}
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-mono text-white tracking-widest truncate">
+            •••• {card.cardNumber?.slice(-4)}
+          </p>
+          <div className="flex justify-between items-end">
+            <p className="text-[6px] text-white/50 uppercase tracking-widest truncate">{card.cardType} CARD</p>
+            {isSelected && <ShieldCheck className="w-3 h-3 text-green-400" />}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
 };
 
 export default function Dashboard() {
@@ -42,6 +91,7 @@ export default function Dashboard() {
   const [topUpCurrency, setTopUpCurrency] = useState("INR");
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentStep, setPaymentStep] = useState<"options" | "cards">("options");
+  const [selectedCard, setSelectedCard] = useState<any>(null);
   const [savedCards, setSavedCards] = useState<any[]>([]);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
@@ -78,14 +128,15 @@ export default function Dashboard() {
 
         const cardsData = await fetchWithAuth("/cards");
         setSavedCards(cardsData);
+        safeStorage.setItem("unipay_cards", JSON.stringify(cardsData));
       } catch (err) {
         const msg = (err as Error).message;
         if (msg.includes("JWT") || msg.includes("Token") || msg.includes("401")) {
           router.push("/login");
         } else {
           // Backend unreachable — use cached wallets or demo data
-          const cached = safeStorage.getItem("unipay_wallets");
-          if (!cached) {
+          const cachedWallets = safeStorage.getItem("unipay_wallets");
+          if (!cachedWallets) {
             const demo = [
               { currency: "INR", balance: "50000.00" },
               { currency: "USD", balance: "1000.00" },
@@ -95,11 +146,18 @@ export default function Dashboard() {
             setWallets(demo);
             safeStorage.setItem("unipay_wallets", JSON.stringify(demo));
           }
-          // Set demo cards if offline
-          setSavedCards([
-            { id: "demo-1", cardType: "DEBIT CARD", network: "VISA", cardNumber: "4932530646388336", expiryDate: "07/30" },
-            { id: "demo-2", cardType: "CREDIT CARD", network: "MASTERCARD", cardNumber: "5588165001341432", expiryDate: "03/29" }
-          ]);
+
+          const cachedCards = safeStorage.getItem("unipay_cards");
+          if (cachedCards) {
+            try { setSavedCards(JSON.parse(cachedCards)); } catch (_) {}
+          } else {
+            const demoCards = [
+              { id: "demo-1", cardType: "DEBIT CARD", network: "VISA", cardNumber: "4932530646388336", expiryDate: "07/30" },
+              { id: "demo-2", cardType: "CREDIT CARD", network: "MASTERCARD", cardNumber: "5588165001341432", expiryDate: "03/29" }
+            ];
+            setSavedCards(demoCards);
+            safeStorage.setItem("unipay_cards", JSON.stringify(demoCards));
+          }
         }
       }
     };
@@ -138,6 +196,7 @@ export default function Dashboard() {
     setShowTopUp(false);
     setPaymentStep("options");
     setTopUpAmount("");
+    setSelectedCard(null);
     setIsProcessing(false);
     showToast(`✅ ${amount.toFixed(2)} ${topUpCurrency} added to your wallet!`);
   };
@@ -436,31 +495,51 @@ export default function Dashboard() {
                        </button>
                     </div>
 
-                    <div className="space-y-3">
-                      <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Select Payment Method</p>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Select Virtual Card</p>
+                        <Link href="/cards" className="text-indigo-400 text-[10px] font-bold hover:underline">Manage Cards</Link>
+                      </div>
                       
-                      {/* Card Option */}
-                      <button 
-                        onClick={() => {
-                          if (!topUpAmount || parseFloat(topUpAmount) <= 0) {
-                            showToast("Please enter a valid amount.", "error");
-                            return;
-                          }
-                          setPaymentStep("cards");
-                        }}
-                        className="w-full glass hover:bg-white/10 border border-white/10 p-4 rounded-2xl transition-all flex items-center justify-between group"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center group-hover:bg-indigo-500/30 transition-colors">
-                            <CreditCard className="w-5 h-5 text-indigo-400" />
-                          </div>
-                          <div className="text-left">
-                            <p className="text-white font-bold text-sm">Debit / Credit Card</p>
-                            <p className="text-zinc-500 text-[10px]">Visa, Mastercard, RuPay</p>
-                          </div>
+                      {savedCards.length > 0 ? (
+                        <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
+                          {savedCards.map(card => (
+                            <MiniCard 
+                              key={card.id} 
+                              card={card} 
+                              isSelected={selectedCard?.id === card.id}
+                              onClick={() => setSelectedCard(card)}
+                            />
+                          ))}
                         </div>
-                        <ArrowUpRight className="w-4 h-4 text-zinc-600 group-hover:text-white transition-colors" />
+                      ) : (
+                        <div className="p-4 bg-white/5 border border-white/10 rounded-2xl text-center">
+                          <p className="text-zinc-500 text-[10px]">No cards found.</p>
+                          <Link href="/cards" className="text-indigo-400 text-[10px] font-bold">Issue one now</Link>
+                        </div>
+                      )}
+
+                      {/* Pay Button for Card */}
+                      <button 
+                        disabled={!selectedCard || !topUpAmount || isProcessing}
+                        onClick={handleRazorpayPayment}
+                        className={`w-full py-4 rounded-2xl font-black text-white transition-all flex items-center justify-center gap-2 ${
+                          selectedCard && topUpAmount 
+                          ? "bg-indigo-500 hover:bg-indigo-600 shadow-lg shadow-indigo-500/20" 
+                          : "bg-white/5 text-zinc-600 cursor-not-allowed border border-white/5"
+                        }`}
+                      >
+                        {isProcessing ? (
+                          <div className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                        ) : (
+                          <>Add via {selectedCard ? `${selectedCard.network} •••• ${selectedCard.cardNumber?.slice(-4)}` : 'Card'}</>
+                        )}
                       </button>
+
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
+                        <div className="relative flex justify-center text-[8px] uppercase tracking-widest font-black text-zinc-600"><span className="bg-black px-2">OR OTHER METHODS</span></div>
+                      </div>
 
                       {/* QR Code Option */}
                       <div className="relative overflow-hidden group">
@@ -500,43 +579,36 @@ export default function Dashboard() {
                     <button onClick={() => setPaymentStep("options")} className="text-zinc-400 hover:text-white flex items-center gap-2 text-sm font-bold transition-colors mb-2">
                       <ArrowLeft className="w-4 h-4" /> Back to Amount
                     </button>
+                    {/* Fallback for the old cards step if needed, though we moved it to the main screen */}
                     <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-4">Select a Card to Pay {topUpAmount} {topUpCurrency}</p>
-                    {savedCards.length === 0 ? (
-                      <div className="p-6 bg-white/5 border border-white/10 rounded-2xl text-center text-zinc-400 text-sm">
-                        No active cards found. <br />
-                        <Link href="/cards" className="text-indigo-400 font-bold mt-2 inline-block">Create a Virtual Card</Link>
-                      </div>
-                    ) : (
-                      <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                        {savedCards.map(card => (
-                          <button
-                            key={card.id}
-                            onClick={handleRazorpayPayment}
-                            disabled={isProcessing}
-                            className={`w-full glass border p-4 rounded-2xl transition-all flex items-center justify-between group ${
-                              isProcessing ? 'opacity-50 cursor-not-allowed border-indigo-500/50' : 'hover:bg-white/10 border-white/10 hover:border-indigo-500/30'
-                            }`}
-                          >
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded flex items-center justify-center shadow-md">
-                                {isProcessing ? (
-                                  <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
-                                ) : (
-                                  <span className="text-white text-[8px] font-black uppercase">{card.network}</span>
-                                )}
-                              </div>
-                              <div className="text-left">
-                                <p className="text-white font-bold text-sm flex items-center gap-2">
-                                  {card.cardType} •••• {card.cardNumber?.slice(-4) || "****"}
-                                </p>
-                                <p className="text-zinc-500 text-[10px] uppercase">Expires {card.expiryDate}</p>
-                              </div>
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                      {savedCards.map(card => (
+                        <button
+                          key={card.id}
+                          onClick={() => {
+                            setSelectedCard(card);
+                            handleRazorpayPayment();
+                          }}
+                          disabled={isProcessing}
+                          className={`w-full glass border p-4 rounded-2xl transition-all flex items-center justify-between group ${
+                            isProcessing ? 'opacity-50 cursor-not-allowed border-indigo-500/50' : 'hover:bg-white/10 border-white/10 hover:border-indigo-500/30'
+                          }`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded flex items-center justify-center shadow-md">
+                              <span className="text-white text-[8px] font-black uppercase">{card.network}</span>
                             </div>
-                            {!isProcessing && <ArrowUpRight className="w-4 h-4 text-indigo-400 group-hover:text-white transition-colors" />}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                            <div className="text-left">
+                              <p className="text-white font-bold text-sm">
+                                {card.cardType} •••• {card.cardNumber?.slice(-4)}
+                              </p>
+                              <p className="text-zinc-500 text-[10px]">Expires {card.expiryDate}</p>
+                            </div>
+                          </div>
+                          <ArrowUpRight className="w-4 h-4 text-indigo-400 group-hover:text-white transition-colors" />
+                        </button>
+                      ))}
+                    </div>
                   </>
                 )}
 
@@ -553,5 +625,3 @@ export default function Dashboard() {
     </main>
   );
 }
-
-

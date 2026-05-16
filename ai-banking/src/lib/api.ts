@@ -1,8 +1,8 @@
 
 const safeStorage = {
-  getItem: (key) => {
+  getItem: (key: string) => {
     if (typeof window === 'undefined') return null;
-    try { return safeStorage.getItem(key); } catch (e) { return null; }
+    try { return window.localStorage.getItem(key); } catch (e) { return null; }
   }
 };
 const getApiBaseUrl = () => {
@@ -88,5 +88,3 @@ export const fetchWithAuth = async (endpoint: string, options: RequestInit = {})
     throw error;
   }
 };
-
-
