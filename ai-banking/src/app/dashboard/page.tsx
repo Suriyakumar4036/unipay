@@ -77,7 +77,7 @@ const MiniCard = ({ card, isSelected, onClick }: { card: any; isSelected: boolea
 
 export default function Dashboard() {
   useEffect(() => {
-    document.title = "UNIPAY | Neural Portfolio";
+    document.title = "UNIPAY | Global AI Finance";
   }, []);
 
   const router = useRouter();
@@ -104,8 +104,13 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       const walletsData = await fetchWithAuth("/wallet/balance");
-      setWallets(walletsData);
-      safeStorage.setItem("unipay_wallets", JSON.stringify(walletsData));
+      // Handle empty wallets or null balances
+      const processedWallets = walletsData.map((w: any) => ({
+        ...w,
+        balance: (parseFloat(w.balance || "0")).toFixed(2)
+      }));
+      setWallets(processedWallets);
+      safeStorage.setItem("unipay_wallets", JSON.stringify(processedWallets));
 
       const txData = await fetchWithAuth("/transactions");
       setTransactions(txData);
@@ -123,13 +128,13 @@ export default function Dashboard() {
           setWallets(parsedWallets);
         } else {
           setWallets([
-            { currency: "INR", balance: "50000.00" },
-            { currency: "USD", balance: "1000.00" },
-            { currency: "EUR", balance: "500.00" },
+            { currency: "INR", balance: "0.00" },
+            { currency: "USD", balance: "0.00" },
+            { currency: "EUR", balance: "0.00" },
           ]);
         }
       } catch (_) {
-         setWallets([{ currency: "INR", balance: "50000.00" }]);
+         setWallets([{ currency: "INR", balance: "0.00" }]);
       }
 
       const cachedCards = safeStorage.getItem("unipay_cards");
@@ -166,7 +171,6 @@ export default function Dashboard() {
     try {
       if (isDemoMode) {
         await new Promise(resolve => setTimeout(resolve, 1500));
-        // Update local state for demo
         setWallets(prev => prev.map(w => w.currency === topUpCurrency ? { ...w, balance: (parseFloat(w.balance) + amount).toFixed(2) } : w));
       } else {
         await fetchWithAuth("/api/payments/verify-payment", {
@@ -228,7 +232,7 @@ export default function Dashboard() {
 
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 md:mb-12 border-b border-white/10 pb-6 md:pb-8">
           <div>
-            <h1 className="text-2xl md:text-3xl font-black text-white font-outfit mb-2">Neural Portfolio</h1>
+            <h1 className="text-3xl md:text-4xl font-black text-white font-outfit mb-2 tracking-tighter">UNIPAY</h1>
             <p className="text-zinc-500 font-bold tracking-widest uppercase text-[10px] md:text-xs">ID: <span className="text-indigo-400">{globalId}</span></p>
           </div>
           <div className="flex flex-wrap gap-3 w-full md:w-auto">
@@ -276,7 +280,7 @@ export default function Dashboard() {
                 className="glass p-8 rounded-[2rem] border-l-4 border-l-indigo-500"
               >
                 <p className="text-zinc-500 text-sm font-bold tracking-widest uppercase mb-2">{w.currency}</p>
-                <h3 className="text-4xl font-black text-white">{Number(w.balance).toFixed(2)}</h3>
+                <h3 className="text-4xl font-black text-white">{Number(w.balance || 0).toFixed(2)}</h3>
               </motion.div>
             ))}
           </div>
@@ -300,19 +304,22 @@ export default function Dashboard() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.05 }}
                       onClick={() => setSelectedTx(tx)}
-                      className="p-6 flex items-center justify-between hover:bg-white/5 transition-colors cursor-pointer"
+                      className="p-6 flex items-center justify-between hover:bg-white/5 transition-colors cursor-pointer group"
                     >
                       <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isSender ? 'bg-rose-500/10 text-rose-400' : 'bg-green-500/10 text-green-400'}`}>
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${isSender ? 'bg-rose-500/10 text-rose-400 group-hover:bg-rose-500/20' : 'bg-green-500/10 text-green-400 group-hover:bg-green-500/20'}`}>
                           {isSender ? <ArrowUpRight /> : <ArrowDownRight />}
                         </div>
                         <div>
-                          <p className="text-white font-bold">{isSender ? `To ${tx?.receiver?.name}` : `From ${tx?.sender?.name}`}</p>
+                          <p className="text-white font-bold group-hover:text-indigo-400 transition-colors">{isSender ? `To ${tx?.receiver?.name}` : `From ${tx?.sender?.name}`}</p>
                           <p className="text-zinc-500 text-xs mt-1">{new Date(tx.timestamp).toLocaleDateString()}</p>
                         </div>
                       </div>
-                      <div className="text-right font-black text-lg text-white">
-                        {isSender ? '-' : '+'}{isSender ? tx.amountSent : tx.amountReceived} {isSender ? tx.senderCurrency : tx.receiverCurrency}
+                      <div className="text-right">
+                        <p className={`font-black text-lg ${isSender ? 'text-white' : 'text-green-400'}`}>
+                           {isSender ? '-' : '+'}{isSender ? tx.amountSent : tx.amountReceived} {isSender ? tx.senderCurrency : tx.receiverCurrency}
+                        </p>
+                        <p className="text-zinc-600 text-[9px] uppercase font-black tracking-widest mt-1">Tap for details</p>
                       </div>
                     </motion.div>
                   )
@@ -323,21 +330,105 @@ export default function Dashboard() {
         </section>
       </div>
 
+      {/* Transaction Detail Modal (POP UP) */}
+      <AnimatePresence>
+        {selectedTx && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setSelectedTx(null)}
+              className="absolute inset-0 bg-black/90 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="glass w-full max-w-lg rounded-[3rem] p-8 md:p-12 relative z-10 border border-white/10 overflow-hidden"
+            >
+              {/* Background Glow */}
+              <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full" />
+              
+              <div className="flex justify-between items-center mb-10 relative z-10">
+                <div className="flex items-center gap-3">
+                   <div className="p-3 bg-indigo-500/10 rounded-2xl">
+                      <Activity className="w-6 h-6 text-indigo-400" />
+                   </div>
+                   <h3 className="text-2xl font-black text-white font-outfit">Transaction Details</h3>
+                </div>
+                <button onClick={() => setSelectedTx(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-zinc-400 hover:text-white">
+                  <X />
+                </button>
+              </div>
+
+              <div className="space-y-8 relative z-10">
+                {/* User Info Card */}
+                <div className="flex items-center gap-5 p-6 bg-white/5 rounded-[2rem] border border-white/10">
+                   <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-black">
+                      {(selectedTx.sender.globalId === globalId ? selectedTx.receiver.name : selectedTx.sender.name).charAt(0)}
+                   </div>
+                   <div>
+                      <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-1">{selectedTx.sender.globalId === globalId ? 'Recipient' : 'Sender'}</p>
+                      <h4 className="text-xl font-black text-white">{selectedTx.sender.globalId === globalId ? selectedTx.receiver.name : selectedTx.sender.name}</h4>
+                      <p className="text-indigo-400 text-xs font-bold">{selectedTx.sender.globalId === globalId ? selectedTx.receiver.globalId : selectedTx.sender.globalId}</p>
+                   </div>
+                </div>
+
+                {/* Details Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="p-5 bg-white/5 rounded-2xl border border-white/5">
+                      <div className="flex items-center gap-2 mb-2">
+                         <Calendar className="w-3 h-3 text-zinc-500" />
+                         <span className="text-zinc-500 text-[9px] font-black uppercase tracking-widest">Date</span>
+                      </div>
+                      <p className="text-white font-bold text-sm">{new Date(selectedTx.timestamp).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                   </div>
+                   <div className="p-5 bg-white/5 rounded-2xl border border-white/5">
+                      <div className="flex items-center gap-2 mb-2">
+                         <Clock className="w-3 h-3 text-zinc-500" />
+                         <span className="text-zinc-500 text-[9px] font-black uppercase tracking-widest">Time</span>
+                      </div>
+                      <p className="text-white font-bold text-sm">{new Date(selectedTx.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                   </div>
+                   <div className="col-span-2 p-5 bg-white/5 rounded-2xl border border-white/5">
+                      <div className="flex items-center gap-2 mb-2">
+                         <Hash className="w-3 h-3 text-zinc-500" />
+                         <span className="text-zinc-500 text-[9px] font-black uppercase tracking-widest">Transaction ID</span>
+                      </div>
+                      <p className="text-indigo-300 font-mono text-[10px] truncate">{selectedTx.id}</p>
+                   </div>
+                </div>
+
+                {/* Amount */}
+                <div className="text-center py-4 border-y border-white/5">
+                   <p className="text-zinc-600 text-[9px] font-black uppercase tracking-[0.3em] mb-2">Amount Transacted</p>
+                   <h2 className="text-4xl font-black text-white">
+                      {selectedTx.sender.globalId === globalId ? '-' : '+'}{selectedTx.sender.globalId === globalId ? selectedTx.amountSent : selectedTx.amountReceived} {selectedTx.sender.globalId === globalId ? selectedTx.senderCurrency : selectedTx.receiverCurrency}
+                   </h2>
+                </div>
+
+                <div className="flex gap-4">
+                  <button onClick={() => setSelectedTx(null)} className="flex-1 bg-white/5 hover:bg-white/10 text-zinc-400 font-bold py-4 rounded-2xl transition-all border border-white/5">Close</button>
+                  <Link href={`/send?to=${selectedTx.sender.globalId === globalId ? selectedTx.receiver.globalId : selectedTx.sender.globalId}`} className="flex-[2]">
+                    <button className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2">
+                      <Send className="w-4 h-4" /> Send Money Again
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Add Funds Modal */}
       <AnimatePresence>
         {showTopUp && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 overflow-hidden">
             <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowTopUp(false)}
               className="absolute inset-0 bg-black/80 backdrop-blur-md"
             />
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 50 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 50 }}
+              initial={{ opacity: 0, scale: 0.9, y: 50 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 50 }}
               className="glass w-full max-w-md rounded-[2.5rem] p-8 md:p-10 relative z-10 border border-white/10"
             >
               <div className="flex justify-between items-center mb-8">
@@ -454,7 +545,7 @@ export default function Dashboard() {
                     <div>
                       <h4 className="text-3xl font-black text-white mb-3">Funds Added!</h4>
                       <p className="text-zinc-500 text-sm leading-relaxed">
-                        Successfully added <span className="text-white font-bold">{topUpAmount} {topUpCurrency}</span> to your wallet using Card {selectedCard?.cardNumber?.slice(-4)}.
+                        Successfully added <span className="text-white font-bold">{topUpAmount} {topUpCurrency}</span> to your wallet.
                       </p>
                     </div>
                     <button onClick={() => setShowTopUp(false)} className="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-2xl border border-white/10 transition-all">
@@ -465,7 +556,7 @@ export default function Dashboard() {
               </div>
 
               <div className="mt-8 pt-8 border-t border-white/5 text-[9px] text-zinc-600 text-center uppercase tracking-widest font-bold">
-                Secured by UniPay Neural Network • 256-bit Encryption
+                Secured by UniPay Neural Network
               </div>
             </motion.div>
           </div>
