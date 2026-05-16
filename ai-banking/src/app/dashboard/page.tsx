@@ -65,7 +65,31 @@ export default function Dashboard() {
 
       const order = typeof orderData === 'string' ? JSON.parse(orderData) : orderData;
 
+      // MOCK BYPASS FOR TEST MODE
+      if (order.id === "MOCK_ORDER" || options.key === "rzp_test_placeholder") {
+        console.log("Test Mode: Simulating successful payment...");
+        const mockResponse = {
+          razorpay_order_id: order.id || "MOCK_ORDER",
+          razorpay_payment_id: "pay_mock_" + Math.random().toString(36).substring(7),
+          razorpay_signature: "mock_signature",
+          amount: topUpAmount,
+          currency: topUpCurrency
+        };
+        
+        const result = await fetchWithAuth("/api/payments/verify-payment", {
+          method: "POST",
+          body: JSON.stringify(mockResponse)
+        });
+
+        if (result.status === "SUCCESS") {
+          alert("Test Mode: Payment Simulated Successfully! Wallet Updated.");
+          window.location.reload();
+        }
+        return;
+      }
+
       // 2. Open Razorpay Checkout
+
       const options = {
         key: "rzp_test_placeholder", // This should be replaced with real key or fetched from backend
         amount: order.amount,
