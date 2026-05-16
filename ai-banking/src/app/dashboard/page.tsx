@@ -101,81 +101,81 @@ export default function Dashboard() {
     setTimeout(() => setToast(null), 4000);
   };
 
+  const fetchDashboardData = async () => {
+    try {
+      const walletsData = await fetchWithAuth("/wallet/balance");
+
+      // Merge backend data with any local adjustments stored
+      const localDelta: Record<string, number> = JSON.parse(safeStorage.getItem("unipay_delta") || "{}");
+      const merged = walletsData.map((w: any) => ({
+        ...w,
+        balance: (parseFloat(w.balance) + (localDelta[w.currency] || 0)).toFixed(2)
+      }));
+      setWallets(merged);
+      safeStorage.setItem("unipay_wallets", JSON.stringify(merged));
+
+      const txData = await fetchWithAuth("/transactions");
+      setTransactions(txData);
+
+      const cardsData = await fetchWithAuth("/cards");
+      setSavedCards(cardsData);
+      safeStorage.setItem("unipay_cards", JSON.stringify(cardsData));
+      setIsDemoMode(false);
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (msg.includes("JWT") || msg.includes("Token") || msg.includes("401")) {
+        router.push("/login");
+      } else {
+        setIsDemoMode(true);
+        // Backend unreachable — use cached wallets or demo data
+        const cachedWallets = safeStorage.getItem("unipay_wallets");
+        try {
+          const parsedWallets = cachedWallets ? JSON.parse(cachedWallets) : [];
+          if (parsedWallets.length > 0) {
+            setWallets(parsedWallets);
+          } else {
+            const demo = [
+              { currency: "INR", balance: "50000.00" },
+              { currency: "USD", balance: "1000.00" },
+              { currency: "EUR", balance: "500.00" },
+              { currency: "GBP", balance: "400.00" },
+            ];
+            setWallets(demo);
+            safeStorage.setItem("unipay_wallets", JSON.stringify(demo));
+          }
+        } catch (_) {
+           setWallets([{ currency: "INR", balance: "50000.00" }]);
+        }
+
+        const cachedCards = safeStorage.getItem("unipay_cards");
+        try {
+          const parsedCards = cachedCards ? JSON.parse(cachedCards) : [];
+          if (parsedCards.length > 0) {
+            setSavedCards(parsedCards);
+          } else {
+            const demoCards = [
+              { id: "demo-1", cardType: "DEBIT CARD", network: "VISA", cardNumber: "4932530646388336", expiryDate: "07/30" },
+              { id: "demo-2", cardType: "CREDIT CARD", network: "MASTERCARD", cardNumber: "5588165001341432", expiryDate: "03/29" }
+            ];
+            setSavedCards(demoCards);
+            safeStorage.setItem("unipay_cards", JSON.stringify(demoCards));
+          }
+        } catch (_) {
+          setSavedCards([]);
+        }
+      }
+    }
+  };
+
   useEffect(() => {
     const gId = safeStorage.getItem("globalId") || "";
     setGlobalId(gId);
 
-    // Restore cached wallets from localStorage first (instant load)
     const cached = safeStorage.getItem("unipay_wallets");
     if (cached) {
       try { setWallets(JSON.parse(cached)); } catch (_) {}
     }
 
-    const fetchDashboardData = async () => {
-      try {
-        const walletsData = await fetchWithAuth("/wallet/balance");
-
-        // Merge backend data with any local adjustments stored
-        const localDelta: Record<string, number> = JSON.parse(safeStorage.getItem("unipay_delta") || "{}");
-        const merged = walletsData.map((w: any) => ({
-          ...w,
-          balance: (parseFloat(w.balance) + (localDelta[w.currency] || 0)).toFixed(2)
-        }));
-        setWallets(merged);
-        safeStorage.setItem("unipay_wallets", JSON.stringify(merged));
-
-        const txData = await fetchWithAuth("/transactions");
-        setTransactions(txData);
-
-        const cardsData = await fetchWithAuth("/cards");
-        setSavedCards(cardsData);
-        safeStorage.setItem("unipay_cards", JSON.stringify(cardsData));
-        setIsDemoMode(false);
-      } catch (err) {
-        const msg = (err as Error).message;
-        if (msg.includes("JWT") || msg.includes("Token") || msg.includes("401")) {
-          router.push("/login");
-        } else {
-          setIsDemoMode(true);
-          // Backend unreachable — use cached wallets or demo data
-          const cachedWallets = safeStorage.getItem("unipay_wallets");
-          try {
-            const parsedWallets = cachedWallets ? JSON.parse(cachedWallets) : [];
-            if (parsedWallets.length > 0) {
-              setWallets(parsedWallets);
-            } else {
-              const demo = [
-                { currency: "INR", balance: "50000.00" },
-                { currency: "USD", balance: "1000.00" },
-                { currency: "EUR", balance: "500.00" },
-                { currency: "GBP", balance: "400.00" },
-              ];
-              setWallets(demo);
-              safeStorage.setItem("unipay_wallets", JSON.stringify(demo));
-            }
-          } catch (_) {
-             setWallets([{ currency: "INR", balance: "50000.00" }]);
-          }
-
-          const cachedCards = safeStorage.getItem("unipay_cards");
-          try {
-            const parsedCards = cachedCards ? JSON.parse(cachedCards) : [];
-            if (parsedCards.length > 0) {
-              setSavedCards(parsedCards);
-            } else {
-              const demoCards = [
-                { id: "demo-1", cardType: "DEBIT CARD", network: "VISA", cardNumber: "4932530646388336", expiryDate: "07/30" },
-                { id: "demo-2", cardType: "CREDIT CARD", network: "MASTERCARD", cardNumber: "5588165001341432", expiryDate: "03/29" }
-              ];
-              setSavedCards(demoCards);
-              safeStorage.setItem("unipay_cards", JSON.stringify(demoCards));
-            }
-          } catch (_) {
-            setSavedCards([]);
-          }
-        }
-      }
-    };
     fetchDashboardData();
   }, [router]);
 
@@ -188,32 +188,40 @@ export default function Dashboard() {
     setIsProcessing(true);
     const amount = parseFloat(topUpAmount);
 
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      if (isDemoMode) {
+        // Simulation mode
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        const delta: Record<string, number> = JSON.parse(safeStorage.getItem("unipay_delta") || "{}");
+        delta[topUpCurrency] = (delta[topUpCurrency] || 0) + amount;
+        safeStorage.setItem("unipay_delta", JSON.stringify(delta));
+        fetchDashboardData();
+      } else {
+        // REAL BACKEND CALL using the mock signature endpoint
+        await fetchWithAuth("/api/payments/verify-payment", {
+          method: 'POST',
+          body: JSON.stringify({
+            razorpay_order_id: "order_" + Date.now(),
+            razorpay_payment_id: "pay_" + Date.now(),
+            razorpay_signature: "mock_signature",
+            amount: amount.toString(),
+            currency: topUpCurrency
+          })
+        });
+        await fetchDashboardData(); // Refresh wallets from real database
+      }
 
-    // Track delta so backend refresh preserves local payments
-    const delta: Record<string, number> = JSON.parse(safeStorage.getItem("unipay_delta") || "{}");
-    delta[topUpCurrency] = (delta[topUpCurrency] || 0) + amount;
-    safeStorage.setItem("unipay_delta", JSON.stringify(delta));
-
-    setWallets((prev: any[]) => {
-      const exists = prev.find((w: any) => w.currency === topUpCurrency);
-      const updated = exists
-        ? prev.map((w: any) =>
-            w.currency === topUpCurrency
-              ? { ...w, balance: (parseFloat(w.balance) + amount).toFixed(2) }
-              : w
-          )
-        : [...prev, { currency: topUpCurrency, balance: amount.toFixed(2) }];
-      safeStorage.setItem("unipay_wallets", JSON.stringify(updated));
-      return updated;
-    });
-
-    setShowTopUp(false);
-    setPaymentStep("options");
-    setTopUpAmount("");
-    setSelectedCard(null);
-    setIsProcessing(false);
-    showToast(`✅ ${amount.toFixed(2)} ${topUpCurrency} added to your wallet!`);
+      setShowTopUp(false);
+      setPaymentStep("options");
+      setTopUpAmount("");
+      setSelectedCard(null);
+      showToast(`✅ ${amount.toFixed(2)} ${topUpCurrency} added successfully!`);
+    } catch (err) {
+      console.error(err);
+      showToast("Payment failed. Please try again.", "error");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
 
