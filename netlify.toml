@@ -5,7 +5,7 @@
   publish = ".next"
 
 [build.environment]
-  NEXT_PUBLIC_API_URL = "https://unipay-production-api.loca.lt"
+  NEXT_PUBLIC_API_URL = "https://59a589e349e263.lhr.life"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

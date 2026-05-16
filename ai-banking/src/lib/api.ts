@@ -24,14 +24,14 @@ const getApiBaseUrl = () => {
     // 3. Fallback for Vercel/Netlify if Env Var is missing
     // We default to the standard unipay production tunnel
     if (hostname.includes('vercel.app') || hostname.includes('netlify.app')) {
-      return "https://unipay-production-api.loca.lt";
+      return "https://59a589e349e263.lhr.life";
     }
     
     // 4. Default to same host (for other self-hosted scenarios)
     return `${protocol}//${hostname}:8080`;
   }
   
-  return "https://unipay-production-api.loca.lt";
+  return "https://59a589e349e263.lhr.life";
 };
 
 export const API_BASE_URL = getApiBaseUrl();
