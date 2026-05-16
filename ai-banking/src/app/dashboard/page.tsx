@@ -215,7 +215,7 @@ export default function Dashboard() {
             ) : (
               <div className="divide-y divide-white/5">
                 {transactions.map((tx, i) => {
-                  const isSender = tx.sender.globalId === globalId;
+                  const isSender = tx?.sender?.globalId === globalId;
                   return (
                     <motion.div 
                       key={tx.id}
@@ -230,7 +230,7 @@ export default function Dashboard() {
                           {isSender ? <ArrowUpRight /> : <ArrowDownRight />}
                         </div>
                         <div>
-                          <p className="text-white font-bold">{isSender ? `To ${tx.receiver.name}` : `From ${tx.sender.name}`}</p>
+                          <p className="text-white font-bold">{isSender ? `To ${tx?.receiver?.name}` : `From ${tx?.sender?.name}`}</p>
                           <p className="text-zinc-500 text-xs mt-1">{new Date(tx.timestamp).toLocaleDateString()} • {new Date(tx.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                         </div>
                       </div>
