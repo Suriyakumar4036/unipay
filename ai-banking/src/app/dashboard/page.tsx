@@ -94,6 +94,7 @@ export default function Dashboard() {
   const [selectedCard, setSelectedCard] = useState<any>(null);
   const [savedCards, setSavedCards] = useState<any[]>([]);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type });
@@ -129,34 +130,48 @@ export default function Dashboard() {
         const cardsData = await fetchWithAuth("/cards");
         setSavedCards(cardsData);
         safeStorage.setItem("unipay_cards", JSON.stringify(cardsData));
+        setIsDemoMode(false);
       } catch (err) {
         const msg = (err as Error).message;
         if (msg.includes("JWT") || msg.includes("Token") || msg.includes("401")) {
           router.push("/login");
         } else {
+          setIsDemoMode(true);
           // Backend unreachable — use cached wallets or demo data
           const cachedWallets = safeStorage.getItem("unipay_wallets");
-          if (!cachedWallets) {
-            const demo = [
-              { currency: "INR", balance: "50000.00" },
-              { currency: "USD", balance: "1000.00" },
-              { currency: "EUR", balance: "500.00" },
-              { currency: "GBP", balance: "400.00" },
-            ];
-            setWallets(demo);
-            safeStorage.setItem("unipay_wallets", JSON.stringify(demo));
+          try {
+            const parsedWallets = cachedWallets ? JSON.parse(cachedWallets) : [];
+            if (parsedWallets.length > 0) {
+              setWallets(parsedWallets);
+            } else {
+              const demo = [
+                { currency: "INR", balance: "50000.00" },
+                { currency: "USD", balance: "1000.00" },
+                { currency: "EUR", balance: "500.00" },
+                { currency: "GBP", balance: "400.00" },
+              ];
+              setWallets(demo);
+              safeStorage.setItem("unipay_wallets", JSON.stringify(demo));
+            }
+          } catch (_) {
+             setWallets([{ currency: "INR", balance: "50000.00" }]);
           }
 
           const cachedCards = safeStorage.getItem("unipay_cards");
-          if (cachedCards) {
-            try { setSavedCards(JSON.parse(cachedCards)); } catch (_) {}
-          } else {
-            const demoCards = [
-              { id: "demo-1", cardType: "DEBIT CARD", network: "VISA", cardNumber: "4932530646388336", expiryDate: "07/30" },
-              { id: "demo-2", cardType: "CREDIT CARD", network: "MASTERCARD", cardNumber: "5588165001341432", expiryDate: "03/29" }
-            ];
-            setSavedCards(demoCards);
-            safeStorage.setItem("unipay_cards", JSON.stringify(demoCards));
+          try {
+            const parsedCards = cachedCards ? JSON.parse(cachedCards) : [];
+            if (parsedCards.length > 0) {
+              setSavedCards(parsedCards);
+            } else {
+              const demoCards = [
+                { id: "demo-1", cardType: "DEBIT CARD", network: "VISA", cardNumber: "4932530646388336", expiryDate: "07/30" },
+                { id: "demo-2", cardType: "CREDIT CARD", network: "MASTERCARD", cardNumber: "5588165001341432", expiryDate: "03/29" }
+              ];
+              setSavedCards(demoCards);
+              safeStorage.setItem("unipay_cards", JSON.stringify(demoCards));
+            }
+          } catch (_) {
+            setSavedCards([]);
           }
         }
       }
@@ -205,6 +220,19 @@ export default function Dashboard() {
   return (
     <main className="min-h-screen p-4 md:p-8 bg-black">
 
+      {/* Demo Mode Banner */}
+      <AnimatePresence>
+        {isDemoMode && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            className="bg-indigo-500 text-white text-[10px] font-black uppercase tracking-[0.2em] py-2 text-center fixed top-0 left-0 right-0 z-[150] shadow-xl"
+          >
+            Running in Neural Demo Mode (Backend Offline)
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Toast Notification */}
       <AnimatePresence>
         {toast && (
@@ -223,7 +251,7 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      <div className="max-w-6xl mx-auto">
+      <div className={`max-w-6xl mx-auto ${isDemoMode ? 'mt-8' : ''}`}>
 
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 md:mb-12 border-b border-white/10 pb-6 md:pb-8">
           <div>
