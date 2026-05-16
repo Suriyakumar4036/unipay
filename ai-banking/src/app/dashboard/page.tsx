@@ -48,11 +48,17 @@ export default function Dashboard() {
                 Send Money
               </button>
             </Link>
+            <Link href="/cards" className="flex-1 md:flex-none">
+              <button className="w-full glass hover:bg-white/10 text-white px-4 md:px-6 py-2 rounded-xl font-bold transition-colors text-sm md:text-base">
+                My Cards
+              </button>
+            </Link>
             <Link href="/ai-chat" className="flex-1 md:flex-none">
               <button className="w-full glass hover:bg-white/10 text-white px-4 md:px-6 py-2 rounded-xl font-bold transition-colors text-sm md:text-base">
                 AI Insights
               </button>
             </Link>
+
             <button onClick={() => { localStorage.clear(); sessionStorage.clear(); router.push("/login"); }} className="text-zinc-500 hover:text-white px-2 md:px-4 text-xs md:text-sm">
               Logout
             </button>
