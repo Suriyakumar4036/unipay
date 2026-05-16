@@ -4,7 +4,8 @@
   publish = ".next"
 
 [build.environment]
-  NEXT_PUBLIC_API_URL = "https://forty-doodles-love.loca.lt"
+  NEXT_PUBLIC_API_URL = "https://unipay-production-api.loca.lt"
+
 
 
 [[plugins]]
