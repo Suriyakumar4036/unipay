@@ -4,7 +4,7 @@
   publish = ".next"
 
 [build.environment]
-  NEXT_PUBLIC_API_URL = "https://unipay-production-api.loca.lt"
+  NEXT_PUBLIC_API_URL = "https://9c92a173e4bb0f.lhr.life"
 
 
 
