@@ -478,7 +478,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="glass w-full max-w-md rounded-[2.5rem] p-8 md:p-10 relative z-10 overflow-hidden"
+              className="glass w-full max-w-md rounded-[2.5rem] p-8 md:p-10 relative z-10"
             >
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-2xl font-black text-white font-outfit">Add Funds</h3>
@@ -530,7 +530,7 @@ export default function Dashboard() {
                       </div>
                       
                       {savedCards.length > 0 ? (
-                        <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
+                        <div className="flex gap-3 overflow-x-auto pb-4 pt-2 custom-scrollbar min-h-[140px] items-center">
                           {savedCards.map(card => (
                             <MiniCard 
                               key={card.id} 
