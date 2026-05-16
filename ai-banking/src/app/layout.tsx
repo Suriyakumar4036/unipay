@@ -24,9 +24,17 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} ${outfit.variable} font-sans antialiased`}>
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            const backendUrl = "https://unipay-production-api.loca.lt";
+            fetch(backendUrl, { headers: { "bypass-tunnel-reminder": "true" } })
+              .catch(e => console.log("Bypass init: ", e));
+          })();
+        `}} />
         <div className="mesh-bg" />
         {children}
       </body>
+
     </html>
   );
 }

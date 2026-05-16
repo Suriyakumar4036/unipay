@@ -37,8 +37,9 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers("/auth/**", "/h2-console/**").permitAll()
+                .requestMatchers("/auth/**", "/h2-console/**", "/api/payments/**").permitAll()
                 .anyRequest().authenticated()
+
             )
 
             .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable())); // For H2 Console
