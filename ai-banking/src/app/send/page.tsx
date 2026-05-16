@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { motion } from "framer-motion";
 import { fetchWithAuth } from "@/lib/api";
 import { Send, ArrowLeft } from "lucide-react";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
-export default function SendMoney() {
+function SendMoneyContent() {
+  const searchParams = useSearchParams();
   const [receiverGlobalId, setReceiverGlobalId] = useState("");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("USD");
@@ -15,7 +17,15 @@ export default function SendMoney() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState<any>(null);
 
+  useEffect(() => {
+    const to = searchParams.get("to");
+    if (to) {
+      setReceiverGlobalId(to);
+    }
+  }, [searchParams]);
+
   const handleSend = async (e: React.FormEvent) => {
+
     e.preventDefault();
     setError("");
     setSuccess(null);
@@ -162,5 +172,13 @@ export default function SendMoney() {
         </motion.div>
       </div>
     </main>
+  );
+}
+
+export default function SendMoney() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-white font-bold">Loading Nexus Engine...</div>}>
+      <SendMoneyContent />
+    </Suspense>
   );
 }

@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchWithAuth } from "@/lib/api";
-import { Wallet, ArrowUpRight, ArrowDownRight, Activity, X, Calendar, Clock, DollarSign, User as UserIcon, Hash } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownRight, Activity, X, Calendar, Clock, DollarSign, User as UserIcon, Hash, Send } from "lucide-react";
+
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -209,12 +210,23 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <button 
-                  onClick={() => setSelectedTx(null)}
-                  className="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-2xl transition-all border border-white/5"
-                >
-                  Done
-                </button>
+                <div className="flex gap-4">
+                  <button 
+                    onClick={() => setSelectedTx(null)}
+                    className="flex-1 bg-white/5 hover:bg-white/10 text-zinc-400 font-bold py-4 rounded-2xl transition-all border border-white/5"
+                  >
+                    Done
+                  </button>
+                  <Link 
+                    href={`/send?to=${selectedTx.sender.globalId === globalId ? selectedTx.receiver.globalId : selectedTx.sender.globalId}`}
+                    className="flex-[2]"
+                  >
+                    <button className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2">
+                      <Send className="w-4 h-4" /> Send Money
+                    </button>
+                  </Link>
+                </div>
+
               </div>
             </motion.div>
           </div>
