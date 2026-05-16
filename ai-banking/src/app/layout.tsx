@@ -8,7 +8,12 @@ const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 export const metadata: Metadata = {
   title: "UNIPAY | Global AI Finance",
   description: "Experience the next generation of global wealth with UniPay AI.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  }
 };
+
 
 
 export default function RootLayout({
