@@ -1,3 +1,10 @@
+
+const safeStorage = {
+  getItem: (key) => {
+    if (typeof window === 'undefined') return null;
+    try { return safeStorage.getItem(key); } catch (e) { return null; }
+  }
+};
 const getApiBaseUrl = () => {
   if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
   
@@ -23,7 +30,7 @@ const getApiBaseUrl = () => {
 export const API_BASE_URL = getApiBaseUrl();
 
 export const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const token = typeof window !== 'undefined' ? safeStorage.getItem('token') : null;
   
   // Debug log to help identify token issues (visible in browser console)
   if (!token && !endpoint.includes('/auth/')) {

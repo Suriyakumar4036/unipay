@@ -10,6 +10,22 @@ import { Wallet, ArrowUpRight, ArrowDownRight, Activity, X, Calendar, Clock, Dol
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+
+const safeStorage = {
+  getItem: (key) => {
+    if (typeof window === 'undefined') return null;
+    try { return safeStorage.getItem(key); } catch (e) { return null; }
+  },
+  setItem: (key, value) => {
+    if (typeof window === 'undefined') return;
+    try { safeStorage.setItem(key, value); } catch (e) {}
+  },
+  clear: () => {
+    if (typeof window === 'undefined') return;
+    try { safeStorage.clear(); } catch (e) {}
+  }
+};
+
 export default function Dashboard() {
   useEffect(() => {
     document.title = "UNIPAY | Neural Portfolio";
@@ -35,11 +51,11 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const gId = localStorage.getItem("globalId") || "";
+    const gId = safeStorage.getItem("globalId") || "";
     setGlobalId(gId);
 
     // Restore cached wallets from localStorage first (instant load)
-    const cached = localStorage.getItem("unipay_wallets");
+    const cached = safeStorage.getItem("unipay_wallets");
     if (cached) {
       try { setWallets(JSON.parse(cached)); } catch (_) {}
     }
@@ -49,13 +65,13 @@ export default function Dashboard() {
         const walletsData = await fetchWithAuth("/wallet/balance");
 
         // Merge backend data with any local adjustments stored
-        const localDelta: Record<string, number> = JSON.parse(localStorage.getItem("unipay_delta") || "{}");
+        const localDelta: Record<string, number> = JSON.parse(safeStorage.getItem("unipay_delta") || "{}");
         const merged = walletsData.map((w: any) => ({
           ...w,
           balance: (parseFloat(w.balance) + (localDelta[w.currency] || 0)).toFixed(2)
         }));
         setWallets(merged);
-        localStorage.setItem("unipay_wallets", JSON.stringify(merged));
+        safeStorage.setItem("unipay_wallets", JSON.stringify(merged));
 
         const txData = await fetchWithAuth("/transactions");
         setTransactions(txData);
@@ -68,7 +84,7 @@ export default function Dashboard() {
           router.push("/login");
         } else {
           // Backend unreachable — use cached wallets or demo data
-          const cached = localStorage.getItem("unipay_wallets");
+          const cached = safeStorage.getItem("unipay_wallets");
           if (!cached) {
             const demo = [
               { currency: "INR", balance: "50000.00" },
@@ -77,7 +93,7 @@ export default function Dashboard() {
               { currency: "GBP", balance: "400.00" },
             ];
             setWallets(demo);
-            localStorage.setItem("unipay_wallets", JSON.stringify(demo));
+            safeStorage.setItem("unipay_wallets", JSON.stringify(demo));
           }
           // Set demo cards if offline
           setSavedCards([
@@ -102,9 +118,9 @@ export default function Dashboard() {
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     // Track delta so backend refresh preserves local payments
-    const delta: Record<string, number> = JSON.parse(localStorage.getItem("unipay_delta") || "{}");
+    const delta: Record<string, number> = JSON.parse(safeStorage.getItem("unipay_delta") || "{}");
     delta[topUpCurrency] = (delta[topUpCurrency] || 0) + amount;
-    localStorage.setItem("unipay_delta", JSON.stringify(delta));
+    safeStorage.setItem("unipay_delta", JSON.stringify(delta));
 
     setWallets((prev: any[]) => {
       const exists = prev.find((w: any) => w.currency === topUpCurrency);
@@ -115,7 +131,7 @@ export default function Dashboard() {
               : w
           )
         : [...prev, { currency: topUpCurrency, balance: amount.toFixed(2) }];
-      localStorage.setItem("unipay_wallets", JSON.stringify(updated));
+      safeStorage.setItem("unipay_wallets", JSON.stringify(updated));
       return updated;
     });
 
@@ -179,7 +195,7 @@ export default function Dashboard() {
               </button>
             </Link>
 
-            <button onClick={() => { localStorage.clear(); sessionStorage.clear(); router.push("/login"); }} className="text-zinc-500 hover:text-white px-2 md:px-4 text-xs md:text-sm">
+            <button onClick={() => { safeStorage.clear(); sessionStorage.clear(); router.push("/login"); }} className="text-zinc-500 hover:text-white px-2 md:px-4 text-xs md:text-sm">
               Logout
             </button>
           </div>
